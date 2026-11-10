@@ -1,0 +1,150 @@
+N1AISchoolEntryTestRepo/
+│
+├─ .runtime/                                      # 项目内复制的 Python 3.12 运行时
+│  └─ python/
+│     ├─ python.exe                               # 项目使用的解释器
+│     ├─ pythonw.exe                              # 无控制台解释器
+│     ├─ python3.dll
+│     ├─ python312.dll
+│     ├─ vcruntime140.dll
+│     ├─ vcruntime140_1.dll
+│     ├─ LICENSE.txt
+│     ├─ DLLs/                                    # Python C 扩展和 Windows 动态库
+│     │  ├─ _ssl.pyd、_sqlite3.pyd、_ctypes.pyd
+│     │  ├─ _multiprocessing.pyd、_asyncio.pyd
+│     │  ├─ tcl86t.dll
+│     │  └─ tk86t.dll
+│     ├─ Lib/                                     # Python 标准库和运行时自带包
+│     │  ├─ encodings/
+│     │  ├─ asyncio/
+│     │  ├─ json/
+│     │  ├─ logging/
+│     │  ├─ sqlite3/
+│     │  ├─ site-packages/                        # 工作区运行时自带的基础包
+│     │  │  ├─ numpy/、numpy.libs/
+│     │  │  └─ ...                                # 其余 bundled 包
+│     │  └─ ...                                   # 其余标准库模块
+│     ├─ include/                                 # Python C API 头文件
+│     ├─ libs/                                    # Python 导入库
+│     ├─ Scripts/                                 # 运行时附带脚本
+│     │  └─ ...                                   # bundled 工具入口
+│     └─ tcl/                                     # Tcl/Tk 运行时资源
+│        ├─ tcl8/
+│        ├─ tk8.6/
+│        ├─ http1.0/
+│        └─ ...                                   # Tcl/Tk 脚本和消息文件
+│
+├─ .venv/                                         # 项目虚拟环境，依赖安装在这里
+│  ├─ pyvenv.cfg                                 # 虚拟环境解释器配置
+│  ├─ Include/                                   # 虚拟环境头文件入口
+│  ├─ Lib/
+│  │  └─ site-packages/                          # 已安装 Python 包
+│  │     ├─ torch/                               # PyTorch CUDA 2.5.1
+│  │     ├─ torch-2.5.1+cu124.dist-info/
+│  │     ├─ numpy/、numpy.libs/
+│  │     ├─ datasets/、huggingface_hub/
+│  │     ├─ sentencepiece/
+│  │     ├─ tensorboard/
+│  │     ├─ safetensors/
+│  │     ├─ yaml/（PyYAML）
+│  │     ├─ pandas/、pyarrow/
+│  │     ├─ requests/、aiohttp/
+│  │     └─ ...                                  # 其余直接依赖和传递依赖
+│  ├─ Scripts/                                   # 环境命令入口
+│  │  ├─ python.exe、pythonw.exe
+│  │  ├─ pip.exe、pip3.exe、pip3.12.exe
+│  │  ├─ tensorboard.exe
+│  │  ├─ datasets-cli.exe
+│  │  ├─ torchrun.exe
+│  │  ├─ hf.exe
+│  │  └─ activate、Activate.ps1、deactivate.bat
+│  └─ share/
+│     └─ man/                                   # 包附带的命令说明
+│
+├─ Doc文档/                                       # 原有考核和讨论文档
+│  ├─ 考核任务.docx
+│  ├─ 考核非结构化想法文档及ChatGPT讨论文档.docx
+│  └─ Codex迭代文档.docx
+│
+├─ data/                                          # 语料、缓存和编码数据
+│  ├─ raw/                                        # 手动导入原始语料的位置，目前为空
+│  ├─ processed/
+│  │  ├─ train.txt                              # 清洗后的训练文本，约 435 MB
+│  │  ├─ val.txt                                # 清洗后的验证文本，约 9 MB
+│  │  ├─ train.bin                              # uint16 训练 token，约 226 MB
+│  │  └─ val.bin                                # uint16 验证 token，约 4.8 MB
+│  └─ cache/                                      # 不直接参与模型计算的下载和处理缓存
+│     ├─ hub/                                     # Hugging Face Hub 缓存
+│     │  ├─ datasets--roneneldan--TinyStories/
+│     │  │  ├─ blobs/                            # 下载文件内容
+│     │  │  ├─ refs/                             # 数据集版本引用
+│     │  │  ├─ snapshots/                        # TinyStories 快照和 parquet 分片
+│     │  │  └─ .no_exist/                        # Hub 元数据
+│     │  ├─ datasets--wikimedia--wikipedia/
+│     │  │  ├─ blobs/
+│     │  │  ├─ refs/
+│     │  │  ├─ snapshots/                        # 中文 Wikipedia 快照和 parquet 分片
+│     │  │  └─ .no_exist/
+│     │  ├─ .locks/                              # 下载锁文件
+│     │  └─ CACHEDIR.TAG
+│     ├─ huggingface/
+│     │  ├─ xet/                                 # Hugging Face Xet 下载缓存
+│     │  │  └─ logs/
+│     │  └─ .agent_harnesses.json
+│     ├─ datasets/                               # datasets 库处理缓存
+│     │  └─ ...                                  # 数据集脚本生成的版本目录
+│     ├─ roneneldan___tiny_stories/              # TinyStories 处理缓存
+│     │  └─ default/0.0.0/
+│     └─ wikimedia___wikipedia/                 # Wikipedia 处理缓存
+│        └─ 20231101.zh/0.0.0/
+│
+├─ tokenizer/
+│  ├─ spm.model                                  # SentencePiece Unigram 模型
+│  └─ spm.vocab                                  # 16,000 词表文本
+│
+├─ configs/
+│  └─ base.yaml                                  # 模型、数据和训练默认配置
+│
+├─ src/                                          # 可阅读和可执行的项目源码
+│  ├─ __init__.py
+│  ├─ config.py                                  # 配置数据结构和 YAML 读取
+│  ├─ model.py                                  # Embedding、RoPE、attention、MLP、logits、loss
+│  ├─ tokenizer.py                              # SentencePiece 训练、加载和编码
+│  ├─ dataset.py                                # memory-map 数据集、语言分层采样和验证窗口
+│  ├─ prepare_data.py                           # 下载、清洗、切分、训练 tokenizer、编码
+│  ├─ data_stats.py                             # 统计真实 token 语言比例
+│  ├─ benchmark.py                              # GPU 显存和吞吐量短测试
+│  ├─ train.py                                  # forward、backward、AdamW、日志、恢复
+│  ├─ evaluate.py                               # 分语言验证 loss 和 perplexity
+│  ├─ sample.py                                 # checkpoint 加载、temperature、top-k 生成
+│  ├─ smoke_test.py                             # forward、反向传播、过拟合、因果遮罩检查
+│  └─ __pycache__/                              # Python 自动生成的字节码缓存，可删除
+│
+├─ checkpoints/                                  # 训练状态和模型权重
+│  ├─ step_00001000.pt ... step_00029000.pt     # 每 1,000 步的周期 checkpoint
+│  ├─ final_step_00000611.pt                    # pilot 结束 checkpoint
+│  ├─ final_step_00000623.pt                    # pilot 恢复测试 checkpoint
+│  └─ final_step_00029297.pt                    # 正式训练最终 checkpoint
+│
+├─ runs/                                         # TensorBoard 和机器可读训练日志
+│  ├─ train.jsonl                               # step、loss、学习率、梯度、吞吐量
+│  └─ events.out.tfevents.*                     # TensorBoard event 文件
+│
+├─ notes/
+│  ├─ debug-log.md                              # 真实问题、定位和修复记录
+│  ├─ experiment-log.md                          # 训练阶段、指标和生成样本
+│  └─ model-walkthrough.md                       # token 到 optimizer 的逐层讲解
+│
+├─ scripts/
+│  ├─ setup_env.ps1                              # 安装项目内 CUDA PyTorch 和依赖
+│  ├─ prepare_data.ps1                           # 设置项目缓存并准备语料
+│  ├─ train.ps1                                  # 启动或恢复训练
+│  └─ view_logs.ps1                              # 启动本地 TensorBoard
+│
+├─ .gitignore                                    # 忽略运行时、数据、checkpoint 和日志
+├─ README.md                                     # 使用、训练控制和结果说明
+├─ requirements.txt                              # Python 依赖版本
+├─ 模型方案.txt                                  # 模型规格和实际训练结果
+└─ 项目结构.txt                                  # 本文件，项目实际结构说明
+
+说明：`.runtime`、`.venv`、`data/cache`、`src/__pycache__` 和 `checkpoints` 包含大量由运行时或训练过程生成的文件。文档展开了它们的功能性层级和关键文件，使用 `...` 表示同类自动生成内容，而不是隐藏必要的项目源码。

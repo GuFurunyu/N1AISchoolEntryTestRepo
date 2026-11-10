@@ -1,0 +1,74 @@
+小型 Transformer 语言模型方案
+
+目标
+从零训练一个可以在 RTX 4060 Laptop GPU 8 GB 显存上运行的中英混合 decoder-only causal language model，并保留足够清晰的代码结构，能够解释 token、embedding、attention、MLP、logits、loss、backward 和 optimizer 的完整过程。
+
+硬件约束
+- GPU：RTX 4060 Laptop GPU，约 8 GB 显存
+- 可用内存：约 13 GB
+- 训练目标：约 4 小时内出现明显变化，约 12 小时内接近稳定期
+
+模型规格
+- 类型：Decoder-only causal Transformer
+- Transformer block：8 层
+- d_model：512
+- attention heads：8
+- head dimension：64
+- MLP hidden dimension：2048
+- 最大上下文长度：512 tokens
+- 参数量：实际 33,412,096
+- 位置编码：RoPE，base=10000
+- 归一化：Pre-LN LayerNorm
+- MLP 激活：GELU
+- attention：causal multi-head self-attention
+- dropout：0.1
+- 输入 embedding 与输出 lm_head 权重共享
+
+训练语料
+- 英文：roneneldan/TinyStories
+- 中文：Wikimedia Wikipedia 中文配置
+- 实际唯一语料规模：训练集 112,968,440 tokens；验证集 2,401,669 tokens
+- 正式训练目标：约 2.4 亿 tokens，允许语料重复 2 到 3 个遍次
+- token 数量目标比例：英文约 65%，中文约 35%
+- 实测原始训练文件比例：英文 42,420,185 tokens（37.6%），中文 70,548,255 tokens（62.4%）
+- 前约 5,700 万 seen tokens 使用原始比例；从 step 7000 之后使用英文约 74% 的分层采样，以使 2.4 亿总训练 tokens 的累计比例接近 65%/35%
+- 验证集分开计算英文和中文 loss，并按 65%/35% 合成总体指标
+- 训练集/验证集：约 98%/2%
+- 项目文档不加入训练语料
+
+Tokenizer
+- SentencePiece Unigram
+- joint vocabulary size：16,000
+- 特殊 token：<pad>、<bos>、<eos>、<unk>
+- 中文和英文使用同一个 tokenizer，方便观察不同语言的 tokenization 行为
+
+训练设置
+- PyTorch CUDA
+- FP16 mixed precision 与 GradScaler
+- 初始 effective batch：约 8,192 tokens
+- 默认 micro-batch：4 个序列，每个序列 512 tokens
+- 默认 gradient accumulation：4 次
+- optimizer：AdamW
+- learning rate：3e-4
+- AdamW betas：0.9、0.95
+- weight decay：0.1
+- warmup：500 optimizer steps
+- 后续使用 cosine decay
+- gradient clipping：1.0
+- 固定验证集、固定采样 prompt 和固定随机种子
+
+实现原则
+- 第一版显式实现 Q/K/V、causal mask、scaled dot-product attention 和 GELU，便于技术复盘。
+- 语料编码为 uint16 token 文件并使用 memory map，避免一次性加载到内存。
+- 先完成 tokenizer、forward/backward、tiny overfit 和短 benchmark，再开始长时间训练。
+- 可选的 PyTorch 高效 attention backend 只在显式实现验证正确后启用。
+- 真实遇到的问题写入 notes/debug-log.md，不预先编造失败经历。
+- 固定 prompt 生成可用 --seed 复现；断点恢复读取 PyTorch CPU/CUDA 随机状态。
+
+时间计划
+- 正确性检查：单 batch、梯度、tiny overfit
+- 试运行：约 500 万 tokens
+- benchmark 实测：micro-batch=4、sequence length=512 时显存峰值约 1.58 GB，速度约 15,300 tokens/sec；真实训练 GPU 显存使用约 2.1 GB，吞吐约 2.9 万至 3.2 万 tokens/sec
+- 正式训练已完成：step 29,297，累计 240,001,024 seen tokens；最终 checkpoint 为 checkpoints/final_step_00029297.pt
+- 最终独立验证（中英文各 100 batch）：英文 loss 1.64872、中文 loss 4.38744、按 65%/35% 加权 loss 2.60727
+- 验证 loss 在后段下降明显放缓，但到结束时仍在小幅下降；称为接近平台，不称为完全收敛。
