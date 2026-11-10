@@ -1,0 +1,2 @@
+﻿path,parent,phase,global_step,tokens_seen,nll_128,nll_256,nll_512,long_context_gain
+parent128,,stage1,0,0,9.767036527395248,9.785700500011444,9.78221544623375,-0.015178918838500977

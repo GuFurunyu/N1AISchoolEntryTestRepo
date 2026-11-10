@@ -1,0 +1,15 @@
+{
+  "config_digest": "0ad74086f394ff0f77f8d0434bbe50dc45765f6e772f792610f4c514facb86fa",
+  "data_identity": {
+    "train_sha256": "c9d18871dbb98293f06a4406d00a36a289089a0e56873a527fa453bb1480d248",
+    "val_sha256": "ecfdf4c4971b6f8712c6b4397e25ff2c93dd55994368738a9f42713108afe299",
+    "tokenizer_sha256": "9cfa0c2164d5d33b68fbe5ce18b0afb1e54584ad7dcb5d1accec0dbb08e1439d"
+  },
+  "device": "cuda",
+  "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "torch_version": "2.5.1+cu124",
+  "tokens_per_step": 8192,
+  "tokens_per_stage": 16384,
+  "tokens_per_full_path": 32768,
+  "total_experiment_tokens": 98304
+}

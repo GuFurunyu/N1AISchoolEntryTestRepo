@@ -103,7 +103,17 @@ N1AISchoolEntryTestRepo/
 │  └─ spm.vocab                                  # 16,000 词表文本
 │
 ├─ configs/
-│  └─ base.yaml                                  # 模型、数据和训练默认配置
+│  ├─ base.yaml                                  # 模型、数据和训练默认配置
+│  └─ task_b/
+│     ├─ shared.yaml                             # 任务 B 两阶段共同参数
+│     ├─ stage1/
+│     │  ├─ 128.yaml                             # 共享父阶段：短上下文
+│     │  └─ 512.yaml                             # 共享父阶段：长上下文
+│     └─ stage2/
+│        ├─ 128-128.yaml                         # 短→短对照
+│        ├─ 128-512.yaml                         # 短→长切换
+│        ├─ 512-512.yaml                         # 长→长对照
+│        └─ 512-128.yaml                         # 长→短切换
 │
 ├─ src/                                          # 可阅读和可执行的项目源码
 │  ├─ __init__.py
@@ -117,6 +127,8 @@ N1AISchoolEntryTestRepo/
 │  ├─ train.py                                  # forward、backward、AdamW、日志、恢复
 │  ├─ evaluate.py                               # 分语言验证 loss 和 perplexity
 │  ├─ sample.py                                 # checkpoint 加载、temperature、top-k 生成
+│  ├─ inference_experiment.py                   # KV cache 对照计时、输出一致性和原始记录
+│  ├─ task_b_experiment.py                       # 双阶段训练、断点续跑和对比指标导出
 │  ├─ smoke_test.py                             # forward、反向传播、过拟合、因果遮罩检查
 │  └─ __pycache__/                              # Python 自动生成的字节码缓存，可删除
 │
@@ -124,7 +136,12 @@ N1AISchoolEntryTestRepo/
 │  ├─ step_00001000.pt ... step_00029000.pt     # 每 1,000 步的周期 checkpoint
 │  ├─ final_step_00000611.pt                    # pilot 结束 checkpoint
 │  ├─ final_step_00000623.pt                    # pilot 恢复测试 checkpoint
-│  └─ final_step_00029297.pt                    # 正式训练最终 checkpoint
+│  ├─ final_step_00029297.pt                    # 正式训练最终 checkpoint
+│  ├─ task_b/                                    # 任务 B：正式实验的初始、父/子完整状态
+│  │  ├─ initial.pt
+│  │  ├─ stage1/parent128/、parent512/
+│  │  └─ stage2/128-128/、128-512/、512-512/、512-128/
+│  └─ task_b_pilot/                              # 任务 B 短试运行检查点
 │
 ├─ runs/                                         # TensorBoard 和机器可读训练日志
 │  ├─ train.jsonl                               # step、loss、学习率、梯度、吞吐量
@@ -133,13 +150,27 @@ N1AISchoolEntryTestRepo/
 ├─ notes/
 │  ├─ debug-log.md                              # 真实问题、定位和修复记录
 │  ├─ experiment-log.md                          # 训练阶段、指标和生成样本
-│  └─ model-walkthrough.md                       # token 到 optimizer 的逐层讲解
+│  ├─ model-walkthrough.md                       # token 到 optimizer 的逐层讲解
+│  ├─ kv-cache-report.md                         # 任务 A 推理优化实验报告
+│  ├─ kv-cache-results.json                      # 正式实验逐次计时、显存和输出
+│  ├─ kv-cache-pilot.json                        # 初次探索记录；显存读数受加载方式影响
+│  └─ task-b-plan.md                             # 运行前写下的问题、假设和控制方法
+│
+├─ experiments/
+│  └─ task_b/
+│     ├─ manifest.json、status.json             # 数据身份和当前训练进度
+│     ├─ comparison.csv                         # 可筛选的长表
+│     ├─ comparison_wide.csv                    # 四路径并排的宽表
+│     ├─ stage1/、stage2/                        # 各阶段配置快照、指标和生成样例
+│     ├─ tensorboard/                            # 四条路径可叠加的曲线
+│     └─ pilot/                                  # 与正式结果隔离的短试运行
 │
 ├─ scripts/
 │  ├─ setup_env.ps1                              # 安装项目内 CUDA PyTorch 和依赖
 │  ├─ prepare_data.ps1                           # 设置项目缓存并准备语料
 │  ├─ train.ps1                                  # 启动或恢复训练
-│  └─ view_logs.ps1                              # 启动本地 TensorBoard
+│  ├─ view_logs.ps1                              # 启动原模型训练日志的 TensorBoard
+│  └─ view_task_b_logs.ps1                       # 启动任务 B 四路径对比曲线
 │
 ├─ .gitignore                                    # 忽略运行时、数据、checkpoint 和日志
 ├─ README.md                                     # 使用、训练控制和结果说明

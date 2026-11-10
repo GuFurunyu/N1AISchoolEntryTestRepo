@@ -85,6 +85,43 @@ $env:PYTHONIOENCODING = 'utf-8'
 
 验证口径曾变化：step 6000 之前主要评估文件开头的英文；step 6000 到 7000 采用全文件均匀抽样；step 7000 后分别评估中英文并按 65%/35% 加权。不同口径的总体 loss 不能直接相互比较，应在 `runs/train.jsonl` 中看 `val_sampling` 字段。真实问题和处理过程见 `notes/debug-log.md`。
 
+## 任务 A：KV cache 推理实验
+
+已加入可选 KV cache。它只改变生成时的计算方式，不改变模型权重：
+
+```powershell
+# 原路径：每生成一个 token 都重算当前上下文
+.\.venv\Scripts\python.exe -m src.sample --checkpoint checkpoints\final_step_00029297.pt --prompt "Once upon a time" --max-new-tokens 64 --seed 1337
+
+# 缓存路径：复用各层历史 K/V
+.\.venv\Scripts\python.exe -m src.sample --checkpoint checkpoints\final_step_00029297.pt --prompt "Once upon a time" --max-new-tokens 64 --seed 1337 --kv-cache
+
+# 重跑完整对照实验
+.\.venv\Scripts\python.exe -m src.inference_experiment --checkpoint checkpoints\final_step_00029297.pt --new-tokens 128 --trials 5
+```
+
+实验记录见 `notes/kv-cache-report.md`，逐次数据见 `notes/kv-cache-results.json`。256-token 提示词下缓存约快 1.47–1.60 倍，32-token 提示词基本持平；输出一致，缓存路径占用的峰值显存略高。
+
+## 任务 B：中文上下文切换实验
+
+这是与上面已完成的模型训练相互独立的从头训练实验。配置在 `configs/task_b/`：两个共享父阶段先分别训练 128 或 512 token，上下文在每条路径训练 token 的中点保持或切换，组成四条路径。问题、事前假设和可比性条件见 `notes/task-b-plan.md`。
+
+```powershell
+# 启动；中断后再次运行同一命令会从每阶段最近的完整状态恢复。
+.\.venv\Scripts\python.exe -m src.task_b_experiment
+
+# 随时查看目前正在运行的路径和步骤。
+Get-Content experiments\task_b\status.json
+
+# 查看四路径曲线；浏览器打开 http://localhost:6007
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\view_task_b_logs.ps1
+
+# 若只需重建两个 CSV 对比表，不重新训练。
+.\.venv\Scripts\python.exe -m src.task_b_experiment --compare-only
+```
+
+`experiments/task_b/comparison.csv` 是按路径筛选的长表；`comparison_wide.csv` 把四条路径并排，Excel 可直接画折线。TensorBoard 中勾选四条路径，优先看 `validation/nll_context_128`、`validation/nll_context_512` 和 `validation/long_context_gain`。同一父阶段的两条子路径在分叉前曲线重合。每个运行目录还有 `metrics.jsonl`、`effective_config.json` 和 `samples.json`；完整可续跑状态保存在 `checkpoints/task_b/`。
+
 ## 重新准备数据
 
 已下载的原始文件保存在 `data/cache/`。如需重新构建 tokenizer 和二进制 token 文件：

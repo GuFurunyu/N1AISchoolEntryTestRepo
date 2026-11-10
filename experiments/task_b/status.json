@@ -1,0 +1,9 @@
+{
+  "current_run": "parent128",
+  "phase": "stage1",
+  "stage_step": 300,
+  "stage_steps": 9766,
+  "global_step": 300,
+  "message": "training",
+  "updated_local_time": "2026-11-10T22:39:04+08:00"
+}

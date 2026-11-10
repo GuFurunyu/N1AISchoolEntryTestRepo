@@ -1,0 +1,282 @@
+{
+  "checkpoint": "checkpoints\\final_step_00029297.pt",
+  "checkpoint_sha256": "8b29ec11e80600c99e362b40fa2b0c638640234865506137d63ee624557036e1",
+  "checkpoint_step": 29297,
+  "torch_version": "2.5.1+cu124",
+  "device": "cuda",
+  "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "block_size": 512,
+  "new_tokens": 16,
+  "trials": 1,
+  "decoding": "top_k=1, temperature=1.0, batch=1, torch.inference_mode",
+  "cases": [
+    {
+      "language": "english",
+      "prompt_tokens": 32,
+      "prompt_text": "Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the",
+      "logits": {
+        "prefill_max_abs_logit_diff": 0.0,
+        "incremental_max_abs_logit_diff": 4.082918167114258e-06,
+        "next_token_equal": true
+      },
+      "uncached": [
+        {
+          "seconds": 0.13799449999351054,
+          "generated_tokens_per_second": 115.94665005309945,
+          "peak_allocated_mib": 536.18359375,
+          "peak_extra_mib": 3.17626953125,
+          "new_token_ids": [
+            239,
+            4,
+            20,
+            982,
+            10,
+            416,
+            6,
+            61,
+            8,
+            187,
+            104,
+            10,
+            197,
+            4,
+            20,
+            982
+          ]
+        }
+      ],
+      "cached": [
+        {
+          "seconds": 0.1329083000018727,
+          "generated_tokens_per_second": 120.38375330791649,
+          "peak_allocated_mib": 537.18017578125,
+          "peak_extra_mib": 4.1728515625,
+          "new_token_ids": [
+            239,
+            4,
+            20,
+            982,
+            10,
+            416,
+            6,
+            61,
+            8,
+            187,
+            104,
+            10,
+            197,
+            4,
+            20,
+            982
+          ]
+        }
+      ],
+      "outputs_equal": true,
+      "generated_text": "garden. The child was curious and wanted to know what was inside. The child",
+      "median_uncached_seconds": 0.13799449999351054,
+      "median_cached_seconds": 0.1329083000018727,
+      "speedup": 1.0382684903167536
+    },
+    {
+      "language": "english",
+      "prompt_tokens": 256,
+      "prompt_text": "Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once upon a time, a curious child found a small wooden door in the garden. Once",
+      "logits": {
+        "prefill_max_abs_logit_diff": 0.0,
+        "incremental_max_abs_logit_diff": 9.5367431640625e-06,
+        "next_token_equal": true
+      },
+      "uncached": [
+        {
+          "seconds": 0.2083973000117112,
+          "generated_tokens_per_second": 76.77642656167261,
+          "peak_allocated_mib": 550.73388671875,
+          "peak_extra_mib": 17.72509765625,
+          "new_token_ids": [
+            197,
+            7,
+            317,
+            5,
+            7,
+            982,
+            51,
+            9,
+            50,
+            5,
+            301,
+            227,
+            4,
+            20,
+            982,
+            307
+          ]
+        }
+      ],
+      "cached": [
+        {
+          "seconds": 0.1416898999887053,
+          "generated_tokens_per_second": 112.9226571638164,
+          "peak_allocated_mib": 570.0087890625,
+          "peak_extra_mib": 37.0,
+          "new_token_ids": [
+            197,
+            7,
+            317,
+            5,
+            7,
+            982,
+            51,
+            9,
+            50,
+            5,
+            301,
+            227,
+            4,
+            20,
+            982,
+            307
+          ]
+        }
+      ],
+      "outputs_equal": true,
+      "generated_text": "inside the door, the child saw a big, shiny box. The child opened",
+      "median_uncached_seconds": 0.2083973000117112,
+      "median_cached_seconds": 0.1416898999887053,
+      "speedup": 1.4707985539429658
+    },
+    {
+      "language": "chinese",
+      "prompt_tokens": 32,
+      "prompt_text": "从前,一个好奇的孩子在花园里发现了一扇小木门。他轻轻推开门,看到了一条 ⁇ 生",
+      "logits": {
+        "prefill_max_abs_logit_diff": 0.0,
+        "incremental_max_abs_logit_diff": 5.4836273193359375e-06,
+        "next_token_equal": true
+      },
+      "uncached": [
+        {
+          "seconds": 0.12951650000468362,
+          "generated_tokens_per_second": 123.5363833906985,
+          "peak_allocated_mib": 536.18359375,
+          "peak_extra_mib": 3.17626953125,
+          "new_token_ids": [
+            39,
+            0,
+            434,
+            5,
+            1566,
+            2984,
+            0,
+            434,
+            39,
+            0,
+            434,
+            5,
+            1566,
+            2984,
+            0,
+            434
+          ]
+        }
+      ],
+      "cached": [
+        {
+          "seconds": 0.16636939998716116,
+          "generated_tokens_per_second": 96.1715315510829,
+          "peak_allocated_mib": 537.18017578125,
+          "peak_extra_mib": 4.1728515625,
+          "new_token_ids": [
+            39,
+            0,
+            434,
+            5,
+            1566,
+            2984,
+            0,
+            434,
+            39,
+            0,
+            434,
+            5,
+            1566,
+            2984,
+            0,
+            434
+          ]
+        }
+      ],
+      "outputs_equal": true,
+      "generated_text": "的 ⁇ 子,这条 ⁇ 子的 ⁇ 子,这条 ⁇ 子",
+      "median_uncached_seconds": 0.12951650000468362,
+      "median_cached_seconds": 0.16636939998716116,
+      "speedup": 0.7784875104116412
+    },
+    {
+      "language": "chinese",
+      "prompt_tokens": 256,
+      "prompt_text": "从前,一个好奇的孩子在花园里发现了一扇小木门。他轻轻推开门,看到了一条 ⁇ 生的小路。从前,一个好奇的孩子在花园里发现了一扇小木门。他轻轻推开门,看到了一条 ⁇ 生的小路。从前,一个好奇的孩子在花园里发现了一扇小木门。他轻轻推开门,看到了一条 ⁇ 生的小路。从前,一个好奇的孩子在花园里发现了一扇小木门。他轻轻推开门,看到了一条 ⁇ 生的小路。从前,一个好奇的孩子在花园里发现了一扇小木门。他轻轻推开门,看到了一条 ⁇ 生的小路。从前,一个好奇的孩子在花园里发现了一扇小木门。他轻轻推开门,看到了一条 ⁇ 生的小路。从前,一个好奇的孩子在花园里发现了一扇小木门。他轻轻推开门,看到了一条 ⁇ 生的小路。从前,一个好奇的孩子在花园里发现了一扇小木",
+      "logits": {
+        "prefill_max_abs_logit_diff": 0.0,
+        "incremental_max_abs_logit_diff": 1.2874603271484375e-05,
+        "next_token_equal": true
+      },
+      "uncached": [
+        {
+          "seconds": 0.20551280000654515,
+          "generated_tokens_per_second": 77.85403147390544,
+          "peak_allocated_mib": 550.73388671875,
+          "peak_extra_mib": 17.72509765625,
+          "new_token_ids": [
+            1511,
+            5,
+            151,
+            956,
+            2892,
+            793,
+            3615,
+            371,
+            9921,
+            697,
+            1202,
+            1511,
+            5,
+            151,
+            956,
+            2892
+          ]
+        }
+      ],
+      "cached": [
+        {
+          "seconds": 0.14524050000181887,
+          "generated_tokens_per_second": 110.162110429251,
+          "peak_allocated_mib": 570.0087890625,
+          "peak_extra_mib": 37.0,
+          "new_token_ids": [
+            1511,
+            5,
+            151,
+            956,
+            2892,
+            793,
+            3615,
+            371,
+            9921,
+            697,
+            1202,
+            1511,
+            5,
+            151,
+            956,
+            2892
+          ]
+        }
+      ],
+      "outputs_equal": true,
+      "generated_text": "门,在花园里发现一扇小木门,在花园",
+      "median_uncached_seconds": 0.20551280000654515,
+      "median_cached_seconds": 0.14524050000181887,
+      "speedup": 1.4149827355591
+    }
+  ]
+}

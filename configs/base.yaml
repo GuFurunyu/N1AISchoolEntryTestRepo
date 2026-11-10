@@ -1,40 +1,69 @@
+# 模型结构参数。改变它们通常会使已有检查点与新模型不兼容。
 model:
+  # 分词器可输出的 token ID 数；决定 embedding 表和最终 logits 的词表维度。
   vocab_size: 16000
+  # 一次前向最多处理的 token 数，也是训练样本的固定上下文长度。
   block_size: 512
+  # 顺序堆叠的 Transformer block 数。
   n_layer: 8
+  # 每层多头注意力的头数；每头维度为 n_embd / n_head = 64。
   n_head: 8
+  # token 表示向量宽度，也是注意力和 MLP 的主通道宽度。
   n_embd: 512
+  # 训练期随机失活比例；eval 模式下关闭。
   dropout: 0.1
+  # RoPE 旋转位置编码的频率基数。
   rope_base: 10000.0
+  # 线性层是否使用可训练偏置。
   bias: true
 
+# 数据文件及训练抽样参数。
 data:
+  # SentencePiece 分词器文件，文本与 token ID 之间靠它转换。
   tokenizer_model: tokenizer/spm.model
+  # 预处理后连续存储 token ID 的二进制文件。
   train_bin: data/processed/train.bin
   val_bin: data/processed/val.bin
+  # 训练、验证文件中英文区域的 token 数；后续区域为中文。
   train_english_tokens: 42420185
   val_english_tokens: 849432
+  # 随机训练窗口来自英文区域的概率；其余概率取中文区域。
   english_sample_probability: 0.74
 
+# 训练过程参数；改变它们对速度、收敛和结果有影响。
 train:
+  # Python / NumPy / PyTorch 的随机种子。
   seed: 1337
+  # 首选计算设备；没有 CUDA 时训练代码会退回 CPU。
   device: cuda
+  # 配置字段，目前训练代码使用写死的 float16 autocast，未读取此项。
   amp_dtype: float16
+  # 每次前向、反向送入模型的样本数；显存压力主要受它影响。
   micro_batch_size: 4
+  # 累积多少个小批的梯度后更新一次参数。
   grad_accum_steps: 4
+  # 计划处理的 token 总数，用它估算优化器总步数。
   max_tokens: 240000000
+  # 可选的步数上限；null 表示仅受 max_tokens 控制。
   max_steps: null
+  # AdamW 的峰值学习率、余弦衰减终点及预热步数。
   learning_rate: 0.0003
   min_learning_rate: 0.00003
   warmup_steps: 500
+  # AdamW 的权重衰减及动量系数。
   weight_decay: 0.1
   beta1: 0.9
   beta2: 0.95
+  # 每次更新前允许的最大全局梯度范数。
   grad_clip: 1.0
+  # 日志、验证和保存检查点的间隔，单位是训练循环步。
+  # 混合精度溢出时参数更新可能跳过，但循环步数仍增加。
   log_interval: 20
   eval_interval: 250
   checkpoint_interval: 1000
+  # 每种语言验证时取多少批；num_workers 是数据加载子进程数。
   eval_batches: 50
   num_workers: 0
+  # 模型检查点及训练日志的输出目录。
   output_dir: checkpoints
   log_dir: runs
