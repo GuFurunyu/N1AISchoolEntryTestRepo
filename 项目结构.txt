@@ -197,10 +197,14 @@ N1AISchoolEntryTestRepo/
 ├─ experiments/english_single/
 │  ├─ base/                                       # 英文基础训练日志
 │  ├─ task_a/                                     # 英文 KV cache 对照结果
-│  └─ task_b/                                     # 英文四路径结果和报告数据
+│  └─ task_b/                                     # 英文四路径结果、报告数据和技术报告
 └─ notes/
    ├─ english-single-migration.md                # 旧方案冻结和新旧边界
-   └─ english-single-plan.md                     # 英文实验设计和复核口径
+   ├─ english-single-plan.md                     # 英文基础训练设计和复核口径
+   └─ task-b-english-single-plan.md              # 英文 Task B 假设和控制设计
+
+根目录报告：
+├─ technical-report.md                            # 任务 A、任务 B 和迁移工作的总技术报告
 
 `data/processed/`、`tokenizer/spm.*`、`checkpoints/` 根目录、`checkpoints/task_b/`、
 `experiments/task_b/` 和旧 `notes/kv-cache-*` 均属于中英混合历史方案，保留原位，

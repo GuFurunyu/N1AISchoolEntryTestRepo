@@ -1,4 +1,9 @@
-# 任务 B：中文训练上下文增长或截短的双向实验（正式运行前登记）
+# 历史记录：中文训练上下文增长或截短的双向实验（旧方案）
+
+> 本文件属于已冻结的中英混合方案。英文单语正式实验使用
+> `notes/task-b-english-single-plan.md` 和
+> `experiments/english_single/task_b/task-b-report.md`；本文件保留用于历史复盘，
+> 不作为新训练、验证或结论的输入。
 
 ## 问题
 

@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-英文单语重建正在使用 `configs/english_single/`、`data/english_single/`、`tokenizer/english_single/`、`checkpoints/english_single/` 和 `experiments/english_single/`。旧中英方案的所有数据、tokenizer、checkpoint、日志和 Task A/Task B 结果不删除，也不用于新实验。
+英文单语重建已完成，正式文件位于 `configs/english_single/`、`data/english_single/`、`tokenizer/english_single/`、`checkpoints/english_single/` 和 `experiments/english_single/`。旧中英方案的所有数据、tokenizer、checkpoint、日志和 Task A/Task B 结果不删除，也不用于新实验。
 
 - Python 3.12 运行时：`.runtime/python/`
 - 独立环境：`.venv/`
@@ -16,6 +16,10 @@
 - GPU smoke test、真实数据 forward/backward、pilot 训练、checkpoint 恢复均已通过
 - 正式训练已完成：step 29,297，累计 240,001,024 seen tokens；最终 checkpoint：`checkpoints/final_step_00029297.pt`
 - 最终独立评估（中英文各 100 batch）：英文 loss 1.64872，中文 loss 4.38744，加权 loss 2.60727
+
+上面旧中英指标属于历史方案。当前英文单语正式结果是：基础训练 240,001,024 seen tokens，最终 checkpoint 为
+`checkpoints/english_single/base/final_step_00029297.pt`，英文验证 loss 约 1.5810；Task A 和 Task B 的完整结果分别见
+`experiments/english_single/task_a/kv-cache-report.md` 和 `experiments/english_single/task_b/task-b-report.md`。
 
 逐层结构、张量形状和训练链路见 `notes/model-walkthrough.md`。训练后段验证 loss 下降明显放缓，但尚未完全停止。英文生成有故事结构，中文生成仍缺乏可靠的整体语义。
 
@@ -104,25 +108,25 @@ $env:PYTHONIOENCODING = 'utf-8'
 
 实验记录见 `notes/kv-cache-report.md`，逐次数据见 `notes/kv-cache-results.json`。256-token 提示词下缓存约快 1.47–1.60 倍，32-token 提示词基本持平；输出一致，缓存路径占用的峰值显存略高。
 
-## 任务 B：中文上下文切换实验
+## 任务 B：英文训练上下文切换实验
 
-这是与上面已完成的模型训练相互独立的从头训练实验。配置在 `configs/task_b/`：两个共享父阶段先分别训练 128 或 512 token，上下文在每条路径训练 token 的中点保持或切换，组成四条路径。问题、事前假设和可比性条件见 `notes/task-b-plan.md`。
+这是与上面已完成的基础模型相互独立的从头训练实验。正式配置在 `configs/english_single/task_b/`：两个父阶段先分别训练 128 或 512 token，上下文在每条路径训练 token 的中点保持或切换，组成四条路径。问题、事前假设和可比性条件见 `notes/task-b-english-single-plan.md`，完整结果见 `experiments/english_single/task_b/task-b-report.md`。
 
 ```powershell
 # 启动；中断后再次运行同一命令会从每阶段最近的完整状态恢复。
-.\.venv\Scripts\python.exe -m src.task_b_experiment
+.\.venv\Scripts\python.exe -m src.task_b_experiment --shared configs\english_single\task_b_shared.yaml
 
 # 随时查看目前正在运行的路径和步骤。
-Get-Content experiments\task_b\status.json
+Get-Content experiments\english_single\task_b\status.json
 
 # 查看四路径曲线；浏览器打开 http://localhost:6007
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\view_task_b_logs.ps1
 
 # 若只需重建两个 CSV 对比表，不重新训练。
-.\.venv\Scripts\python.exe -m src.task_b_experiment --compare-only
+.\.venv\Scripts\python.exe -m src.task_b_experiment --shared configs\english_single\task_b_shared.yaml --compare-only
 ```
 
-`experiments/task_b/comparison.csv` 是按路径筛选的长表；`comparison_wide.csv` 把四条路径并排，Excel 可直接画折线。TensorBoard 中勾选四条路径，优先看 `validation/nll_context_128`、`validation/nll_context_512` 和 `validation/long_context_gain`。同一父阶段的两条子路径在分叉前曲线重合。每个运行目录还有 `metrics.jsonl`、`effective_config.json` 和 `samples.json`；完整可续跑状态保存在 `checkpoints/task_b/`。
+`experiments/english_single/task_b/comparison.csv` 是按路径筛选的长表；`comparison_wide.csv` 把四条路径并排，Excel 可直接画折线。TensorBoard 中勾选四条路径，优先看 `validation/nll_context_128`、`validation/nll_context_512` 和 `validation/long_context_gain`。同一父阶段的两条子路径在分叉前曲线重合。每个运行目录还有 `metrics.jsonl`、`effective_config.json` 和 `samples.json`；完整可续跑状态保存在 `checkpoints/english_single/task_b/`。旧 `experiments/task_b/` 仍是历史记录。
 
 ## 重新准备数据
 

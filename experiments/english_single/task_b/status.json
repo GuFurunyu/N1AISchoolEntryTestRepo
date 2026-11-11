@@ -1,9 +1,9 @@
 {
   "current_run": "512-128",
   "phase": "stage2",
-  "stage_step": 1100,
+  "stage_step": 9766,
   "stage_steps": 9766,
-  "global_step": 10866,
-  "message": "training",
-  "updated_local_time": "2026-11-11T17:20:30+08:00"
+  "global_step": 19532,
+  "message": "complete",
+  "updated_local_time": "2026-11-11T17:52:39+08:00"
 }

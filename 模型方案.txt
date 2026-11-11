@@ -99,3 +99,9 @@ Tokenizer
 - 新基础训练配置为 `configs/english_single/base.yaml`，状态和日志分别位于 `checkpoints/english_single/base/`、`experiments/english_single/base/`。
 - 新 Task A 和 Task B 使用 `experiments/english_single/`、`checkpoints/english_single/` 独立目录；新配置把语言边界设为 0，表示整个文件都是英文，不启用旧中文采样逻辑。
 - 迁移边界、保留策略和可复核方法记录在 `notes/english-single-migration.md`、`notes/english-single-plan.md`。
+- 英文 Task A 结果见 `experiments/english_single/task_a/kv-cache-report.md`；英文 Task B
+  技术报告见 `experiments/english_single/task_b/task-b-report.md`。
+- 总实验报告见根目录 `technical-report.md`。Task B 最终四条路径的
+  `(L128, L512, G)` 为：128-128 `(1.7874, 3.6949, -1.9074)`，
+  128-512 `(1.7919, 1.6099, 0.1819)`，512-512 `(1.7931, 1.5944, 0.1986)`，
+  512-128 `(1.7852, 1.6315, 0.1537)`。
