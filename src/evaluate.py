@@ -32,6 +32,26 @@ def main():
     model.load_state_dict(state["model"])
     # eval 关闭 dropout，使同一输入的预测不受训练期随机失活影响。
     model.eval()
+    if data_config.val_english_tokens == 0:
+        loader = make_eval_loader(data_config.val_bin, model_config.block_size, train_config.micro_batch_size,
+                                  train_config.eval_batches, train_config.num_workers, 0, None)
+        iterator = iter(loader)
+        total = 0.0
+        for _ in range(args.batches):
+            try:
+                inputs, targets = next(iterator)
+            except StopIteration:
+                iterator = iter(loader)
+                inputs, targets = next(iterator)
+            inputs, targets = inputs.to(device), targets.to(device)
+            with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=device.type == "cuda"):
+                _, loss = model(inputs, targets)
+            total += float(loss)
+        loss = total / args.batches
+        print(f"english_loss={loss:.5f}")
+        print(f"perplexity={math.exp(min(20.0, loss)):.5f}")
+        return
+
     losses = {}
     # val.bin 的前段是英语、后段是中文；英语末尾留出 block_size 以免
     # 一个验证窗口跨越语言边界。start/end 是 token 位置，不是字节位置。

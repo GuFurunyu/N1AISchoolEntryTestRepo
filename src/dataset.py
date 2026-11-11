@@ -92,7 +92,7 @@ def make_loader(path: str, block_size: int, batch_size: int, shuffle: bool, num_
         dataset,
         batch_size=batch_size,
         sampler=sampler,
-        shuffle=False,
+        shuffle=shuffle if sampler is None else False,
         num_workers=num_workers,
         # GPU 可用时锁定 CPU 内存页，有助于 CPU->GPU 复制。
         pin_memory=torch.cuda.is_available(),

@@ -441,6 +441,7 @@ def run_stage(
     max_context = int(shared["model_max_context"])
     base_batch = int(shared["base_windows_per_micro"])
     accumulation = int(shared["gradient_accumulation"])
+    train_start = int(data_config.train_english_tokens) if int(data_config.train_english_tokens) > 0 else 0
     tokens_per_step = base_batch * max_context * accumulation
     result_dir = results_root / spec["phase"] / spec["id"]
     result_dir.mkdir(parents=True, exist_ok=True)
@@ -474,7 +475,7 @@ def run_stage(
             losses = []
             for _ in range(accumulation):
                 starts = data_rng.integers(
-                    data_config.train_english_tokens,
+                    train_start,
                     len(train_tokens) - max_context,
                     size=base_batch,
                     dtype=np.int64,
@@ -670,10 +671,12 @@ def main():
         save_json(manifest_path, manifest)
     train_tokens = np.memmap(train_path, dtype=np.uint16, mode="r")
     val_tokens = np.memmap(val_path, dtype=np.uint16, mode="r")
-    if len(train_tokens) - data_config.train_english_tokens <= int(shared["model_max_context"]):
-        raise ValueError("Chinese training region is shorter than one window")
+    train_start = int(data_config.train_english_tokens) if int(data_config.train_english_tokens) > 0 else 0
+    val_start = int(data_config.val_english_tokens) if int(data_config.val_english_tokens) > 0 else 0
+    if len(train_tokens) - train_start <= int(shared["model_max_context"]):
+        raise ValueError("Training region is shorter than one window")
     val_starts = np.linspace(
-        data_config.val_english_tokens,
+        val_start,
         len(val_tokens) - int(shared["model_max_context"]) - 1,
         int(shared["validation_windows"]),
         dtype=np.int64,
@@ -682,7 +685,7 @@ def main():
     tokenizer = load_tokenizer(data_config.tokenizer_model)
     prompts = select_prompts(val_path.with_suffix(".txt"), tokenizer, shared)
     save_json(results_root / "prompt_sources.json", {"prompts": prompts})
-    checkpoint_root = Path("checkpoints/task_b")
+    checkpoint_root = Path(shared.get("checkpoint_root", "checkpoints/task_b"))
     if args.output_root is not None:
         checkpoint_root = Path("checkpoints/task_b_pilot")
     make_initial(checkpoint_root, model_config, shared, config_digest)

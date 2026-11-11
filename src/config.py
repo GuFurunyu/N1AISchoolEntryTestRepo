@@ -43,9 +43,10 @@ class DataConfig:
     val_bin: str = "data/processed/val.bin"
     # 文件按英文在前、中文在后写入；这两个数字是实测英文 token 数。
     # 若重新准备语料或重训 tokenizer，需要重新统计并更新边界。
-    train_english_tokens: int = 42_420_185
-    val_english_tokens: int = 849_432
-    # 当前训练采样器先按此概率选英文，再在对应语言区间选随机窗口。
+    # 双语旧方案使用语言边界；单语方案将两个值设为 0，表示整个文件都是英文。
+    train_english_tokens: int = 0
+    val_english_tokens: int = 0
+    # 仅在双语旧方案中使用；单语配置不启用分层采样。
     english_sample_probability: float = 0.74
 
 

@@ -186,21 +186,18 @@ def main():
 
     run_start_tokens = tokens_seen
 
-    # 训练 loader 抽取训练窗口；验证 loader 限定在各自语言的 token 区域。
+    # 训练 loader 抽取训练窗口；单语配置使用整个文件，双语旧配置才按语言采样。
     train_loader = make_loader(
         data_config.train_bin, model_config.block_size, train_config.micro_batch_size,
         True, train_config.num_workers, data_config.train_english_tokens,
         data_config.english_sample_probability,
     )
-    en_val_loader = make_eval_loader(
+    val_start = data_config.val_english_tokens if data_config.val_english_tokens > 0 else 0
+    val_end = data_config.val_english_tokens - model_config.block_size if data_config.val_english_tokens > 0 else None
+    val_loader = make_eval_loader(
         data_config.val_bin, model_config.block_size, train_config.micro_batch_size,
         train_config.eval_batches, train_config.num_workers,
-        0, data_config.val_english_tokens - model_config.block_size,
-    )
-    zh_val_loader = make_eval_loader(
-        data_config.val_bin, model_config.block_size, train_config.micro_batch_size,
-        train_config.eval_batches, train_config.num_workers,
-        data_config.val_english_tokens, None,
+        val_start, val_end,
     )
     iterator = iter(train_loader)
     model.train()
@@ -266,16 +263,12 @@ def main():
                 record(payload)
 
             if step % train_config.eval_interval == 0:
-                # 分别计算英语和中文验证损失，再按固定的 0.65/0.35 权重合并。
-                en_loss = evaluate(model, en_val_loader, device, train_config.eval_batches, amp_enabled)
-                zh_loss = evaluate(model, zh_val_loader, device, train_config.eval_batches, amp_enabled)
-                val_loss = 0.65 * en_loss + 0.35 * zh_loss
+                val_loss = evaluate(model, val_loader, device, train_config.eval_batches, amp_enabled)
                 payload = {
                     "step": step, "tokens_seen": tokens_seen,
-                    "val_loss": val_loss, "val_loss_en": en_loss, "val_loss_zh": zh_loss,
-                    # min(20) 只限制指数运算的范围；它不改变上面的 val_loss。
+                    "val_loss": val_loss, "val_loss_en": val_loss,
+                    "val_sampling": "uniform_english_v1" if data_config.train_english_tokens == 0 else "stratified_65en_35zh_v3",
                     "perplexity": math.exp(min(20.0, val_loss)),
-                    "val_sampling": "stratified_65en_35zh_v3",
                 }
                 print(json.dumps(payload, ensure_ascii=True))
                 record(payload)

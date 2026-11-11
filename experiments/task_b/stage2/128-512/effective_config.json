@@ -1,0 +1,99 @@
+{
+  "shared": {
+    "base_config": "configs/base.yaml",
+    "output_root": "experiments/task_b",
+    "model_max_context": 512,
+    "stage_steps": 9766,
+    "model_seed": 271828,
+    "data_seed": 20261110,
+    "base_windows_per_micro": 4,
+    "gradient_accumulation": 4,
+    "peak_learning_rate": 0.0003,
+    "min_learning_rate": 3e-05,
+    "warmup_steps": 500,
+    "weight_decay": 0.1,
+    "beta1": 0.9,
+    "beta2": 0.95,
+    "grad_clip": 1.0,
+    "amp_dtype": "float16",
+    "log_interval": 100,
+    "eval_interval": 500,
+    "checkpoint_interval": 1000,
+    "validation_windows": 64,
+    "evaluation_contexts": [
+      128,
+      256,
+      512
+    ],
+    "evaluation_target_tail": 128,
+    "generation_prompts": 2,
+    "generation_new_tokens": 64,
+    "generation_seed": 1337,
+    "generation_temperature": 0.8,
+    "generation_top_k": 50
+  },
+  "stage": {
+    "id": "128-512",
+    "phase": "stage2",
+    "parent": "parent128",
+    "context_length": 512
+  },
+  "base": {
+    "model": {
+      "vocab_size": 16000,
+      "block_size": 512,
+      "n_layer": 8,
+      "n_head": 8,
+      "n_embd": 512,
+      "dropout": 0.1,
+      "rope_base": 10000.0,
+      "bias": true
+    },
+    "data": {
+      "tokenizer_model": "tokenizer/spm.model",
+      "train_bin": "data/processed/train.bin",
+      "val_bin": "data/processed/val.bin",
+      "train_english_tokens": 42420185,
+      "val_english_tokens": 849432,
+      "english_sample_probability": 0.74
+    },
+    "train": {
+      "seed": 1337,
+      "device": "cuda",
+      "amp_dtype": "float16",
+      "micro_batch_size": 4,
+      "grad_accum_steps": 4,
+      "max_tokens": 240000000,
+      "max_steps": null,
+      "learning_rate": 0.0003,
+      "min_learning_rate": 3e-05,
+      "warmup_steps": 500,
+      "weight_decay": 0.1,
+      "beta1": 0.9,
+      "beta2": 0.95,
+      "grad_clip": 1.0,
+      "log_interval": 20,
+      "eval_interval": 250,
+      "checkpoint_interval": 1000,
+      "eval_batches": 50,
+      "num_workers": 0,
+      "output_dir": "checkpoints",
+      "log_dir": "runs"
+    }
+  },
+  "manifest": {
+    "config_digest": "757ae7b253abd91d8983a5863dd820e1e12f14f2fcf3a4b22cb336466ecaed90",
+    "data_identity": {
+      "train_sha256": "c9d18871dbb98293f06a4406d00a36a289089a0e56873a527fa453bb1480d248",
+      "val_sha256": "ecfdf4c4971b6f8712c6b4397e25ff2c93dd55994368738a9f42713108afe299",
+      "tokenizer_sha256": "9cfa0c2164d5d33b68fbe5ce18b0afb1e54584ad7dcb5d1accec0dbb08e1439d"
+    },
+    "device": "cuda",
+    "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "torch_version": "2.5.1+cu124",
+    "tokens_per_step": 8192,
+    "tokens_per_stage": 80003072,
+    "tokens_per_full_path": 160006144,
+    "total_experiment_tokens": 480018432
+  }
+}

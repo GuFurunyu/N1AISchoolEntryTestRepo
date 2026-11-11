@@ -119,6 +119,36 @@ def build_text_splits(args) -> Tuple[Path, Path]:
     return train_path, val_path
 
 
+def build_english_text_splits(args) -> Tuple[Path, Path]:
+    """只从 TinyStories 建立英文 train/val 文本，不接触旧的混合语料目录。"""
+    processed_dir = Path(args.processed_dir)
+    cache_dir = Path(args.cache_dir)
+    processed_dir.mkdir(parents=True, exist_ok=True)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    documents = _load_documents("roneneldan/TinyStories", None, "train", str(cache_dir))
+    train_path = processed_dir / "train.txt"
+    val_path = processed_dir / "val.txt"
+    rng = random.Random(args.seed)
+    used_chars = train_count = val_count = 0
+    with train_path.open("w", encoding="utf-8") as train_handle, val_path.open("w", encoding="utf-8") as val_handle:
+        for document in documents:
+            text = " ".join(str(document).split())
+            if len(text) < 20:
+                continue
+            if used_chars + len(text) + 1 > args.english_chars:
+                break
+            used_chars += len(text) + 1
+            if rng.random() < args.validation_fraction:
+                val_handle.write(text + "\n")
+                val_count += 1
+            else:
+                train_handle.write(text + "\n")
+                train_count += 1
+    print(f"Collected {used_chars:,} English characters from TinyStories")
+    print(f"Wrote {train_count} English train documents and {val_count} validation documents")
+    return train_path, val_path
+
+
 def encode_file(text_path: Path, bin_path: Path, tokenizer_model: str) -> int:
     """逐行编码文本，把 ID 连续写为 uint16，返回 token 总数。"""
     tokenizer = load_tokenizer(tokenizer_model)
@@ -150,13 +180,19 @@ def main():
     parser.add_argument("--chinese-chars", type=int, default=100_000_000)
     parser.add_argument("--seed", type=int, default=1337)
     parser.add_argument("--skip-download", action="store_true")
+    parser.add_argument("--english-only", action="store_true", help="Build only TinyStories English data")
+    parser.add_argument("--validation-fraction", type=float, default=0.02)
     args = parser.parse_args()
 
     # 重用已有文本可省去网络下载，但下方仍会重训 tokenizer 和重编码 .bin。
     # 重训 tokenizer 后 token ID 可能变化，不能随意配合旧模型 checkpoint。
+    if not 0.0 < args.validation_fraction < 1.0:
+        parser.error("--validation-fraction must be between 0 and 1")
     if args.skip_download:
         train_path = Path(args.processed_dir) / "train.txt"
         val_path = Path(args.processed_dir) / "val.txt"
+    elif args.english_only:
+        train_path, val_path = build_english_text_splits(args)
     else:
         train_path, val_path = build_text_splits(args)
 
