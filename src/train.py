@@ -181,7 +181,11 @@ def main():
         if state.get("rng_state") is not None:
             torch.set_rng_state(state["rng_state"].cpu())
         if device.type == "cuda" and state.get("cuda_rng_state") is not None:
-            torch.cuda.set_rng_state_all(state["cuda_rng_state"])
+            # map_location=device 会把检查点中的 ByteTensor 映射到 GPU；
+            # set_rng_state_all 要求接收 CPU ByteTensor，因此恢复前逐个移回 CPU。
+            torch.cuda.set_rng_state_all(
+                [item.cpu() for item in state["cuda_rng_state"]]
+            )
         print(f"Resumed from {checkpoint} at step {step}")
 
     run_start_tokens = tokens_seen

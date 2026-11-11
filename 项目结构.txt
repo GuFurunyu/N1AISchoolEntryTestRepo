@@ -178,4 +178,32 @@ N1AISchoolEntryTestRepo/
 ├─ 模型方案.txt                                  # 模型规格和实际训练结果
 └─ 项目结构.txt                                  # 本文件，项目实际结构说明
 
+当前英文单语实验新增隔离目录：
+├─ data/english_single/
+│  ├─ manifest.json                               # 数据来源、文档/token 数和 SHA-256
+│  └─ processed/                                  # 只含 TinyStories 英文
+│     ├─ train.txt、val.txt
+│     └─ train.bin、val.bin
+├─ tokenizer/english_single/
+│  ├─ spm.model                                   # 英文单语 tokenizer
+│  └─ spm.vocab
+├─ configs/english_single/
+│  ├─ base.yaml                                   # 英文基础训练配置
+│  ├─ task_b_shared.yaml                          # 英文 Task B 公共配置
+│  └─ task_b/stage1、stage2/                      # 四条上下文路径
+├─ checkpoints/english_single/
+│  ├─ base/                                       # 英文基础训练 checkpoint
+│  └─ task_b/                                     # 英文 Task B 完整状态
+├─ experiments/english_single/
+│  ├─ base/                                       # 英文基础训练日志
+│  ├─ task_a/                                     # 英文 KV cache 对照结果
+│  └─ task_b/                                     # 英文四路径结果和报告数据
+└─ notes/
+   ├─ english-single-migration.md                # 旧方案冻结和新旧边界
+   └─ english-single-plan.md                     # 英文实验设计和复核口径
+
+`data/processed/`、`tokenizer/spm.*`、`checkpoints/` 根目录、`checkpoints/task_b/`、
+`experiments/task_b/` 和旧 `notes/kv-cache-*` 均属于中英混合历史方案，保留原位，
+新实验不读取这些文件。
+
 说明：`.runtime`、`.venv`、`data/cache`、`src/__pycache__` 和 `checkpoints` 包含大量由运行时或训练过程生成的文件。文档展开了它们的功能性层级和关键文件，使用 `...` 表示同类自动生成内容，而不是隐藏必要的项目源码。

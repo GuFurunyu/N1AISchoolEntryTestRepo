@@ -66,3 +66,29 @@ This file records real problems observed during the run. Do not add an issue unt
 - Fix: From step 7000, sample a language first, using 74% English, then choose a random token window inside that language's span. This compensates for the earlier 57 million tokens sampled at the original ratio. Evaluate English and Chinese separately and report a 65% / 35% weighted loss.
 - Evidence after the fix: The sampled dataset and language-specific validation loaders returned correct shapes and spans. The step 7000 checkpoint measured English loss 2.2113, Chinese loss 4.5508, weighted loss 3.0301 before the sampling change. Later training measurements will show whether the language gap narrows.
 - What I would check first next time: Count tokens by language immediately after tokenization, before starting a long run.
+
+## 2026-11-11 English single-language resume rejected CUDA RNG state
+
+- Date/time: 2026-11-11
+- Command or stage: Resume English single-language base training from `checkpoints/english_single/base/step_00006000.pt`
+- Symptom: Training loaded the model configuration and checkpoint metadata, then failed before the first resumed batch with `TypeError: RNG state must be a torch.ByteTensor`.
+- First measurement: The exception came from `torch.cuda.set_rng_state_all`; the checkpoint contained `cuda_rng_state`, and the loader had used `map_location=cuda`.
+- Hypotheses: The checkpoint was corrupt, the CUDA RNG list had the wrong number of devices, or mapping the state to CUDA changed the tensor type/device expected by the restore API.
+- Checks performed: Confirmed the checkpoint file existed and was the new English checkpoint; inspected `torch.cuda.get_rng_state_all()` and the load path. The saved values are byte tensors, but `map_location=cuda` moves them to CUDA before restore.
+- Root cause: `torch.cuda.set_rng_state_all` requires CPU `torch.ByteTensor` objects, while the resume loader passed the mapped CUDA tensors directly.
+- Fix: Convert every saved CUDA RNG tensor back to CPU before calling `set_rng_state_all`.
+- Evidence after the fix: The corrected code is ready for a resume attempt; no model or optimizer state was modified by the failed attempt.
+- What I would check first next time: Test checkpoint restore with both CPU and CUDA RNG states after any change to `map_location`.
+
+## 2026-11-11 English Task B prompt selector assumed Chinese text
+
+- Date/time: 2026-11-11
+- Command or stage: First launch of the new English-only Task B
+- Symptom: The run stopped before creating a checkpoint with `RuntimeError: Not enough long Chinese documents in validation text`.
+- First measurement: The new validation file contains only TinyStories English text, while `select_prompts()` filtered every line unless it contained Chinese characters.
+- Hypotheses: The validation file was empty or too short, the tokenizer produced too few tokens, or the prompt selector still encoded the old bilingual assumption.
+- Checks performed: Counted the new validation tokens and inspected the selector. The file contains 842,751 English tokens; the selector hard-coded a Chinese Unicode range and a Chinese-specific error.
+- Root cause: The old Task B qualitative generation helper was reused without a language-neutral branch.
+- Fix: Select Chinese documents when a validation file contains Chinese; otherwise select sufficiently long English documents and use a generic error message.
+- Evidence after the fix: The code now supports both the frozen bilingual Task B and the new English-only Task B; this first failed launch created no new checkpoint.
+- What I would check first next time: Run language and prompt-length assertions before starting a long experiment.

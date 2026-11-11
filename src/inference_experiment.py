@@ -107,6 +107,7 @@ def main():
     parser.add_argument("--new-tokens", type=int, default=128)
     parser.add_argument("--trials", type=int, default=5)
     parser.add_argument("--output", default="notes/kv-cache-results.json")
+    parser.add_argument("--english-only", action="store_true", help="Run only English prompts for the English-only experiment")
     args = parser.parse_args()
     if args.new_tokens < 2 or args.trials < 1:
         parser.error("--new-tokens must be >= 2 and --trials must be >= 1")
@@ -139,7 +140,8 @@ def main():
     }
 
     # 两种语言、两种提示词长度。确保最长条件仍能至少增量解码一个 token。
-    for language, text in PROMPTS.items():
+    prompt_items = {"english": PROMPTS["english"]} if args.english_only else PROMPTS
+    for language, text in prompt_items.items():
         for prompt_tokens in (32, 256):
             if prompt_tokens + args.new_tokens > model_config.block_size:
                 parser.error("Prompt plus generated tokens exceeds block_size; reduce --new-tokens")
@@ -203,7 +205,7 @@ def main():
     # 额外检查真实的随机采样设置。两种路径分别重置同一 RNG 种子；
     # 若输出不同，需要检查数值差异是否跨过抽样概率边界。
     record["stochastic_checks"] = []
-    for language, text in PROMPTS.items():
+    for language, text in prompt_items.items():
         ids = torch.tensor([tokenizer.encode(text, out_type=int)], dtype=torch.long, device=device)
         outputs = []
         with torch.inference_mode():

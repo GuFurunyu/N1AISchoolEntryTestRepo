@@ -154,25 +154,26 @@ def evaluate(model, val_tokens: np.memmap, starts: np.ndarray, shared: dict, dev
 
 
 def select_prompts(text_path: Path, tokenizer, shared: dict) -> list[dict]:
-    """从未参与训练的中文验证文档选固定长提示词，保留原文续写供查看。"""
+    """从验证文档选固定长 prompt；双语旧方案优先中文，单语方案使用英文。"""
     selected = []
     needed = int(shared["model_max_context"]) + 128
-    with text_path.open("r", encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            if re.search("[\u3400-\u9fff]", line) is None:
-                continue
-            ids = tokenizer.encode(line.strip(), out_type=int)
-            if len(ids) < needed:
-                continue
-            prompt_ids = ids[: int(shared["model_max_context"])]
-            selected.append({
-                "validation_line": line_number,
-                "prompt_ids": prompt_ids,
-                "real_next_128_text": tokenizer.decode(ids[needed - 128 : needed]),
-            })
-            if len(selected) == int(shared["generation_prompts"]):
-                return selected
-    raise RuntimeError("Not enough long Chinese documents in validation text")
+    lines = text_path.read_text(encoding="utf-8").splitlines()
+    has_chinese = any(re.search("[\u3400-\u9fff]", line) for line in lines)
+    for line_number, line in enumerate(lines, start=1):
+        if has_chinese and re.search("[\u3400-\u9fff]", line) is None:
+            continue
+        ids = tokenizer.encode(line.strip(), out_type=int)
+        if len(ids) < needed:
+            continue
+        prompt_ids = ids[: int(shared["model_max_context"])]
+        selected.append({
+            "validation_line": line_number,
+            "prompt_ids": prompt_ids,
+            "real_next_128_text": tokenizer.decode(ids[needed - 128 : needed]),
+        })
+        if len(selected) == int(shared["generation_prompts"]):
+            return selected
+    raise RuntimeError("Not enough long validation documents for generation prompts")
 
 
 @torch.inference_mode()
@@ -627,7 +628,10 @@ def main():
         print(f"Updated comparison CSV files in {results_root}")
         return
 
-    specs = [read_yaml(shared_path.parent / relative) for relative in STAGE_FILES]
+    stage_config_root = shared_path.parent / "task_b"
+    if not (stage_config_root / STAGE_FILES[0]).exists():
+        stage_config_root = shared_path.parent
+    specs = [read_yaml(stage_config_root / relative) for relative in STAGE_FILES]
     model_config, data_config, train_config = load_config(shared["base_config"])
     if model_config.block_size != int(shared["model_max_context"]):
         raise ValueError("base model block_size must match model_max_context")

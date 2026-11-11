@@ -1,2 +1,4 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+data/english_single/processed/train.bin filter=lfs diff=lfs merge=lfs -text
+data/english_single/processed/train.txt filter=lfs diff=lfs merge=lfs -text

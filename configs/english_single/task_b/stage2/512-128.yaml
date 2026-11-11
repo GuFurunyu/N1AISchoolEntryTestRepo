@@ -1,0 +1,4 @@
+id: 512-128
+phase: stage2
+parent: parent512
+context_length: 128

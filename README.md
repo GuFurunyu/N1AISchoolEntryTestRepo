@@ -1,8 +1,10 @@
 # 小型 Transformer 语言模型
 
-这是一个从零训练的中英双语 decoder-only Transformer。模型规格见 `模型方案.txt`，目录说明见 `项目结构.txt`。源码在 `src/`，关键张量操作都有注释；运行时、依赖、数据缓存、tokenizer、checkpoint 和训练日志均位于项目目录内。
+这是一个从零训练的 decoder-only Transformer。当前正式实验是英文 TinyStories 单语方案；此前的中英混合方案完整保留为历史记录。模型规格见 `模型方案.txt`，目录说明见 `项目结构.txt`。
 
 ## 当前状态
+
+英文单语重建正在使用 `configs/english_single/`、`data/english_single/`、`tokenizer/english_single/`、`checkpoints/english_single/` 和 `experiments/english_single/`。旧中英方案的所有数据、tokenizer、checkpoint、日志和 Task A/Task B 结果不删除，也不用于新实验。
 
 - Python 3.12 运行时：`.runtime/python/`
 - 独立环境：`.venv/`

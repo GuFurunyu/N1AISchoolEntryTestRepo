@@ -1,0 +1,20 @@
+{
+  "source_dataset": "roneneldan/TinyStories",
+  "source_split": "train",
+  "language": "English",
+  "validation_fraction": 0.02,
+  "train_documents": 196702,
+  "validation_documents": 3947,
+  "train_tokens": 42074460,
+  "validation_tokens": 842751,
+  "tokenizer": "tokenizer/english_single/spm.model",
+  "tokenizer_vocab_size": 16000,
+  "sha256": {
+    "processed/train.txt": "2C2023CD0E18A1452333B6212A338341FA4CB8F1D0F044AC87495C5265905AC9",
+    "processed/val.txt": "3AD7CE2954DA13138F0E8202354E193FFDC53D53265B8F5B7355DDC10D678E6B",
+    "processed/train.bin": "32C0DBEEA21B34323EEC81F91A0E81E30ED34D9779BF31CAB9EDCDBE7C0D14AC",
+    "processed/val.bin": "69770610FF1915349405BF103ED1C324E3CA4111C5E00ACBF697B2EE2C71894A",
+    "../tokenizer/english_single/spm.model": "B32F04E06025E86A579CE5B26AABE2B4D7A8E85C35BD669DDD0C0DF1AF2ADB07",
+    "../tokenizer/english_single/spm.vocab": "F03368F8B59752D1B48C934FA494F3380183D7672205FB2AD2F306C3D2CA6CB8"
+  }
+}

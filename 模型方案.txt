@@ -89,3 +89,13 @@ Tokenizer
 - 正式训练已完成：step 29,297，累计 240,001,024 seen tokens；最终 checkpoint 为 checkpoints/final_step_00029297.pt
 - 最终独立验证（中英文各 100 batch）：英文 loss 1.64872、中文 loss 4.38744、按 65%/35% 加权 loss 2.60727
 - 验证 loss 在后段下降明显放缓，但到结束时仍在小幅下降；称为接近平台，不称为完全收敛。
+
+当前正式方案：英文单语重建
+- 旧中英混合方案、旧 tokenizer、旧 checkpoint、旧 Task A/Task B 结果全部冻结为历史记录，不删除、不接续、不并入新结论。
+- 新语料只使用 `roneneldan/TinyStories`；训练文本约 196,702 篇、验证文本约 3,947 篇，训练 token 42,074,460，验证 token 842,751。
+- 新 tokenizer 是只用英文训练文本重新训练的 16,000 词 SentencePiece Unigram：`tokenizer/english_single/`。
+- 新 token 文件位于 `data/english_single/processed/`，其清单和哈希见 `data/english_single/manifest.json`。
+- 新模型仍为 8 层、512 hidden、8 heads、512 最大上下文、约 33.4M 参数，但从随机初始化开始，不能加载旧模型或旧优化器状态。
+- 新基础训练配置为 `configs/english_single/base.yaml`，状态和日志分别位于 `checkpoints/english_single/base/`、`experiments/english_single/base/`。
+- 新 Task A 和 Task B 使用 `experiments/english_single/`、`checkpoints/english_single/` 独立目录；新配置把语言边界设为 0，表示整个文件都是英文，不启用旧中文采样逻辑。
+- 迁移边界、保留策略和可复核方法记录在 `notes/english-single-migration.md`、`notes/english-single-plan.md`。

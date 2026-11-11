@@ -1,0 +1,29 @@
+# 英文单语 Task B；与旧中文 Task B 完全分离。
+base_config: configs/english_single/base.yaml
+output_root: experiments/english_single/task_b
+checkpoint_root: checkpoints/english_single/task_b
+model_max_context: 512
+stage_steps: 9766
+model_seed: 41002
+data_seed: 20261111
+base_windows_per_micro: 4
+gradient_accumulation: 4
+peak_learning_rate: 0.0003
+min_learning_rate: 0.00003
+warmup_steps: 500
+weight_decay: 0.1
+beta1: 0.9
+beta2: 0.95
+grad_clip: 1.0
+amp_dtype: float16
+log_interval: 100
+eval_interval: 500
+checkpoint_interval: 1000
+validation_windows: 64
+evaluation_contexts: [128, 256, 512]
+evaluation_target_tail: 128
+generation_prompts: 2
+generation_new_tokens: 64
+generation_seed: 1337
+generation_temperature: 0.8
+generation_top_k: 50
