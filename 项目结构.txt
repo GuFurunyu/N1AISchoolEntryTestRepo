@@ -1,6 +1,7 @@
 N1AISchoolEntryTestRepo/
 │
 ├─ .runtime/                                      # 项目内 Python 3.12 运行时
+│  ├─ matplotlib/                                 # 报告曲线生成时的项目内字体缓存
 │  └─ python/
 │     ├─ python.exe                               # 项目使用的解释器
 │     ├─ pythonw.exe                              # 无控制台解释器
@@ -36,6 +37,7 @@ N1AISchoolEntryTestRepo/
 │  │     ├─ sentencepiece/、tensorboard/
 │  │     ├─ safetensors/、yaml/
 │  │     ├─ pandas/、pyarrow/
+│  │     ├─ matplotlib/、pillow/                  # 报告曲线绘图依赖
 │  │     └─ requests/、aiohttp/、...
 │  ├─ Scripts/                                   # 环境命令入口
 │  │  ├─ python.exe、pythonw.exe
@@ -114,6 +116,10 @@ N1AISchoolEntryTestRepo/
 │
 ├─ experiments/
 │  ├─ english_single/                             # 【当前正式】与旧结果独立
+│  │  ├─ report_figures/                          # 从正式 TensorBoard 事件和 Task A JSON 绘制的报告图
+│  │  │  ├─ base_loss.png、base_perplexity.png
+│  │  │  ├─ task_a_latency.png
+│  │  │  └─ task_b_dynamics.png
 │  │  ├─ base/
 │  │  │  └─ tensorboard/
 │  │  │     ├─ train.jsonl                        # 基础训练 loss、学习率、吞吐、验证
@@ -165,6 +171,7 @@ N1AISchoolEntryTestRepo/
 ├─ scripts/
 │  ├─ prepare_english_single.ps1                 # 【当前正式】准备英文语料/tokenizer
 │  ├─ train_english_single.ps1                   # 【当前正式】启动或恢复英文基础训练
+│  ├─ plot_report_figures.py                     # 重画当前英文实验的报告曲线
 │  ├─ setup_env.ps1                              # 项目内环境安装
 │  ├─ prepare_data.ps1、train.ps1                # 【历史保留】旧中英入口
 │  ├─ view_logs.ps1                              # 【历史保留】旧中英 TensorBoard
@@ -175,9 +182,14 @@ N1AISchoolEntryTestRepo/
 │  ├─ 交付包说明.txt、交付包关键文件SHA256.txt     # 接收方入口与关键文件校验
 │  ├─ 项目结构.txt                             # 包内实际结构
 │  ├─ README.md、模型方案.txt、操作说明.txt        # 包内的总体、设计和操作说明
+│  ├─ 迁移潜在问题.txt                         # 接收方运行条件、已验证事项与迁移风险
 │  ├─ technical-report.md、requirements.txt      # 总报告与依赖版本
 │  ├─ .runtime/python/                           # Windows Python 3.12；不含原电脑 .venv
-│  ├─ Doc文档/考核任务.docx                       # 考核原文
+│  ├─ Doc文档/                                  # 用户保留的六份工作文档；不作训练语料
+│  │  ├─ 考核任务.docx、总实验报告.docx
+│  │  ├─ 总实验报告草稿.docx
+│  │  ├─ 考核非结构化想法文档及ChatGPT讨论文档.docx
+│  │  └─ Codex迭代文档.docx、Codex问答文档.docx
 │  ├─ src/、scripts/、configs/、notes/             # 源码、英文入口、配置、研究与 debug 记录
 │  ├─ data/english_single/、tokenizer/english_single/ # 正式英文数据与 tokenizer
 │  ├─ checkpoints/english_single/
@@ -187,6 +199,7 @@ N1AISchoolEntryTestRepo/
 │  └─ experiments/task_b/、runs/                  # 少量旧实验日志，仅供历史复盘
 ├─ 模型方案.txt                                  # 当前正式方案与历史边界
 ├─ 项目结构.txt                                  # 本文件
+├─ 迁移潜在问题.txt                              # 独立交付包可迁移性审计与剩余风险
 ├─ README.md                                     # 当前英文方案运行和结果入口
 ├─ requirements.txt                              # Python 依赖
 └─ .gitignore                                    # 运行时、数据和检查点的 Git 规则

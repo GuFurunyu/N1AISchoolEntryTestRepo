@@ -1,0 +1,81 @@
+英文单语模型交付包：迁移潜在问题与已完成的检查
+
+适用范围
+========
+本文件同时保存在完整项目根目录和 submission_english_single/ 根目录。
+文中的“交付包”指 submission_english_single/；在交付包内阅读时，
+本文件所在目录就是接收方解压后的项目根目录。
+本文件记录的是迁移条件、误操作风险和复核边界，不表示这些问题均已发生。
+
+一、已经验证的部分
+==================
+- 交付包约 3.44 GiB、12,366 个文件；交付包关键文件 SHA-256 清单中的
+  14 个文件均与清单匹配。包内 34 个源码、脚本和配置文件与完整项目对应文件一致。
+- 8 份英文 checkpoint 均能被当前锁定版本的 PyTorch 读取；英文 tokenizer
+  有 16,000 个 token，train.bin、val.bin 的 token 数与数据清单相符，
+  实际 token ID 均未越过词表范围。
+- 在交付包目录中，用已有依赖强制走 CPU，基础 checkpoint 已完成短文本生成
+  和一批验证评估；Task B 的 512→128 checkpoint 已完成 KV cache 短文本生成。
+- 包内 Python 复制到含中文和空格的临时路径后仍能启动并创建虚拟环境；
+  交付包内没有指向原电脑位置的文件链接。
+- 当前英文实验的 JSON、JSONL、CSV、YAML 与 TensorBoard 事件可以解析。
+这些检查没有安装新的完整依赖环境，也没有模拟接收方的具体硬件。
+
+二、接收方环境风险
+================
+1. 交付包有 Windows x64 的 Python 运行时，但没有可直接使用的 .venv 或离线
+   Python 依赖包。scripts/setup_env.ps1 会联网安装 PyTorch 2.5.1 的 CUDA 12.4
+   版本和 requirements.txt 中的依赖。接收方若无法访问安装源，首次安装会失败。
+   包内现有数据与 checkpoint 可以免去重新下载语料，但不能免去首次安装依赖。
+2. 内置安装脚本面向 Windows x64；Linux 和 macOS 需要另行配置兼容的 Python
+   和 PyTorch 环境。无 NVIDIA GPU 时已验证 CPU 生成与评估可用，完整训练则
+   可能非常慢。
+3. 安装脚本固定选择 CUDA 12.4 版 PyTorch。当前 2.5.1+cu124 环境报告的
+   编译架构包含 sm_50、sm_60、sm_61、sm_70、sm_75、sm_80、sm_86、sm_90；
+   接收方若使用未覆盖的较新 GPU，可能在 CUDA
+   可见的情况下仍遇到运行时不兼容。新 GPU 的适配情况需在该机器上核实。
+4. 交付包本体约 3.44 GiB，本机现有虚拟环境约 4.77 GiB；解压文件与安装
+   环境合计已约 8.21 GiB，另需压缩包和 pip 下载缓存空间。建议接收方准备
+   至少约 15 GiB 空闲磁盘空间；实际需求随安装缓存和压缩方式变化。
+5. requirements.txt 固定了主要包的版本，但没有固定所有间接依赖。
+   本机现有环境通过 pip check，不等于未来在另一台机器上重新解析依赖必然相同。
+
+三、运行入口与文件身份风险
+========================
+1. 若直接运行部分 Python 模块而省略参数，sample、evaluate、train、
+   smoke_test、inference_experiment 等仍默认读取旧 configs/base.yaml，
+   task_b_experiment 仍默认读取旧 configs/task_b/shared.yaml。交付包只保留
+   旧配置用于历史复盘，没有旧模型所需的完整数据和 tokenizer；因此请使用
+   README.md、操作说明.txt 中带 --config 或 --shared 的英文单语命令。
+2. scripts/prepare_english_single.ps1 会重新准备英文文本、重训 tokenizer、
+   重写 token 文件。包内已经有正式数据与 tokenizer；仅查看结果、生成或
+   评估时不应先运行该脚本。若重新生成的 token ID 与 checkpoint 不一致，
+   原模型就无法按原训练语义复核。
+3. Task A 原始计时记录所载基础 checkpoint 的 SHA-256 与包内当前文件不同。
+   旧训练入口曾在零次新参数更新后重新保存同名 checkpoint。原因已在
+   experiments/english_single/task_a/kv-cache-report.md 披露；包内当前
+   checkpoint 能用于生成和评估，但无法逐字节复核原始计时文件身份。
+4. data/english_single/manifest.json 中 tokenizer 的哈希键使用了带 ../ 的
+   路径文字；不要仅据该键拼接文件路径。实际文件在
+   tokenizer/english_single/，交付包关键文件 SHA-256 清单列出了可直接
+   使用的路径及哈希。
+
+四、压缩、传输与说明材料
+======================
+1. 当前尚未制作最终压缩包，因此没有验证压缩包完整性，也没有在接收方电脑
+   做“解压→安装依赖→运行”的全过程。现有 SHA-256 清单只覆盖 14 个关键
+   文件，不能检查其余所有源码、配置和日志是否在传输时遗漏。压缩后应在
+   独立目录重新解压，并核对清单和最小运行命令。
+2. 包内 Doc文档/ 有六份文档，包括考核原文、总实验报告、草稿和讨论记录。
+   这些是使用者主动保留的材料，不属于训练数据。发送前仍应确认六份均
+   符合预期；交付包的 README.md 和 项目结构.txt 已按实际目录列出。
+3. 完整项目后来生成的 experiments/english_single/report_figures/ 图片和
+   scripts/plot_report_figures.py 当前不在交付包中。它们不影响已有模型、
+   TensorBoard 事件或表格运行，但接收方不能直接查看这组新绘制的 PNG。
+
+五、当前可作出的结论
+====================
+在 Windows x64、具备安装网络与足够磁盘空间、使用兼容 PyTorch 的硬件、
+并按英文单语说明显式指定配置的条件下，已有检查没有发现缺失的核心模型
+文件。仍无法仅凭本机检查保证另一台机器的依赖安装、GPU 运行与压缩传输
+过程一定成功；这些是发送前和接收后需要分别核对的环节。
