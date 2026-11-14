@@ -158,14 +158,6 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "train.jsonl"
-    writer = None
-    try:
-        # TensorBoard 用于图形查看；缺少它时仍写 JSONL 日志。
-        from torch.utils.tensorboard import SummaryWriter
-        writer = SummaryWriter(str(log_dir))
-    except ImportError:
-        print("TensorBoard is unavailable; JSONL logging remains enabled")
-
     step = 0
     tokens_seen = 0
     checkpoint = latest_checkpoint(output_dir) if args.resume == "auto" else None
@@ -187,6 +179,20 @@ def main():
                 [item.cpu() for item in state["cuda_rng_state"]]
             )
         print(f"Resumed from {checkpoint} at step {step}")
+
+    # 已达到预算时直接退出。先前这里仍会走到函数末尾，重新写入同名 final
+    # checkpoint；即使没有优化器更新，重新序列化也会改变文件 SHA-256。
+    if step >= total_steps:
+        print("Training target already reached; existing checkpoint left unchanged.")
+        return
+
+    writer = None
+    try:
+        # TensorBoard 用于图形查看；缺少它时仍写 JSONL 日志。
+        from torch.utils.tensorboard import SummaryWriter
+        writer = SummaryWriter(str(log_dir))
+    except ImportError:
+        print("TensorBoard is unavailable; JSONL logging remains enabled")
 
     run_start_tokens = tokens_seen
 

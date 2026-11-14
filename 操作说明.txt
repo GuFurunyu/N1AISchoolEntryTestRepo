@@ -1,10 +1,27 @@
 小型 Transformer 模型操作说明
 
-本文对应当前正式的英文 TinyStories 单语方案。所有命令默认从项目根目录执行：
+本文对应当前正式的英文 TinyStories 单语方案。所有命令默认从项目根目录执行。解压到其他电脑后，请先在 PowerShell 中进入新的项目根目录；不要照抄发送者电脑的路径。
 
-cd D:\GitHub\N1AISchoolEntryTestRepo
+例如，假设项目被解压到了 `D:\Exam\N1AISchoolEntryTestRepo`，可以执行：
 
-一、开始或继续基础训练
+Set-Location "D:\Exam\N1AISchoolEntryTestRepo"
+
+下面所有路径都是相对于该项目根目录的相对路径。
+
+一、解压后的首次环境准备
+========================
+
+项目内的 `.runtime/python/` 是随项目保留的 Python 运行时，`.venv/` 是项目虚拟环境。Windows 虚拟环境会记录创建时的绝对路径，整个项目移动后可能失效，因此在接收方电脑首次运行时先执行：
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup_env.ps1
+
+该脚本会检查 `.venv` 是否仍指向有效的基础 Python；如果项目已移动导致其失效，会使用项目内 `.runtime/python/python.exe` 自动重建 `.venv`，然后安装 `requirements.txt` 中的依赖。安装 PyTorch CUDA 版本需要网络；如果没有 CUDA，模型代码仍可切换到 CPU 配置运行，但训练速度会大幅下降。
+
+如果希望主动重建项目虚拟环境：
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup_env.ps1 -RecreateVenv
+
+二、开始或继续基础训练
 ========================
 
 启动脚本：
@@ -17,7 +34,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\train_english_single
 - 日志：experiments/english_single/base/tensorboard/
 - --resume auto：自动加载英文目录中最新的 checkpoint
 
-当前基础训练已经完成 240,001,024 seen tokens，因此直接再次运行会发现训练目标已经达到，不会重新训练。
+当前基础训练已经完成 240,001,024 seen tokens，因此直接再次运行会发现训练目标已经达到，不会重新训练，也不会再次覆盖最终 checkpoint。
 
 如果要把总预算提高到 260,000,000 tokens：
 
@@ -32,7 +49,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\train_english_single
 
 提高 max_tokens 会改变 cosine learning rate 的时间表，应把它记录成新的训练阶段。
 
-二、从头开始新的训练
+三、从头开始新的训练
 ====================
 
 不要直接在现有 base 目录中使用 --resume none，否则新旧 checkpoint 和日志可能混在一起。
@@ -55,7 +72,7 @@ train:
   --config configs/english_single/base_trial.yaml `
   --resume none
 
-三、停止训练
+四、停止训练
 ============
 
 首选在正在训练的终端按 Ctrl+C。程序会尝试保存可恢复的中断 checkpoint：
@@ -78,7 +95,7 @@ Stop-Process -Id <PID>
 
 强制停止可能来不及保存新的中断 checkpoint，因此优先使用 Ctrl+C。
 
-四、查看训练状态
+五、查看训练状态
 ================
 
 查看最近的英文训练和验证日志：
@@ -104,7 +121,7 @@ Get-ChildItem checkpoints\english_single\base\*.pt |
 
 nvidia-smi
 
-五、查看 TensorBoard 曲线
+六、查看 TensorBoard 曲线
 ========================
 
 基础训练：
@@ -134,7 +151,7 @@ Task B 当前四条路径已经完成。只查看已有结果时，不要重新�
   --shared configs/english_single/task_b_shared.yaml `
   --compare-only
 
-六、测试生成文本
+七、测试生成文本
 ================
 
 使用基础模型生成英文故事：
@@ -187,7 +204,7 @@ Task B 当前四条路径已经完成。只查看已有结果时，不要重新�
 
 --kv-cache 只改变推理计算方式，不改变模型参数。
 
-七、评估验证 loss 和 perplexity
+八、评估验证 loss 和 perplexity
 ===============================
 
 .\.venv\Scripts\python.exe -m src.evaluate `
@@ -197,7 +214,7 @@ Task B 当前四条路径已经完成。只查看已有结果时，不要重新�
 
 该命令只进行验证，不更新模型参数。输出的是英文验证 loss 和 perplexity；它衡量下一个 token 的预测能力，不等于完整的文本质量评分。
 
-八、调整训练参数
+九、调整训练参数
 ================
 
 基础配置文件：configs/english_single/base.yaml
@@ -235,7 +252,7 @@ micro_batch_size × grad_accum_steps × block_size
 
 这些参数会影响 embedding、attention、位置编码、输出层或 token ID 映射，通常应使用新的配置、checkpoint 目录和日志目录重新训练。
 
-九、当前文件入口
+十、当前文件入口
 ================
 
 - 当前模型方案：模型方案.txt
@@ -248,3 +265,14 @@ micro_batch_size × grad_accum_steps × block_size
 - 真实问题记录：notes/debug-log.md
 
 如果训练命令、配置路径、checkpoint 路径、日志路径或参数含义发生变化，应同步修改本文件。
+
+十一、迁移和发送项目
+====================
+
+发送给考核要求者时，只需压缩并发送项目根目录下的 `submission_english_single/` 文件夹。它含当前正式英文方案的源码、配置、语料、tokenizer、最终基础 checkpoint、Task B 的完整状态、日志和报告，也含项目内 Python 运行时；接收方以该文件夹为项目根目录。具体内容和操作见包内 `交付包说明.txt`。
+
+原始项目内容在建立交付副本前约 43.2 GiB，其中约 29.9 GiB 是基础训练和历史 checkpoint，约 7.8 GiB 是数据及下载缓存，约 4.7 GiB 是 `.venv`。新建的 `submission_english_single/` 另外占约 3.44 GiB。原始历史文件继续留在本地；发送时只压缩交付目录。
+
+如果发送的是完整留档包，请确认压缩时包含 `.runtime/`、`.venv/`、`data/`、`checkpoints/`、`tokenizer/`、`experiments/`、`notes/`、`configs/`、`src/` 和 `scripts/`，不要只从 GitHub 重新克隆，因为数据、checkpoint 和被 Git 忽略的运行文件不会随普通代码仓库出现。
+
+接收方解压后，先进入新的项目根目录，再运行本文件第一节的 `setup_env.ps1`。`.venv` 是 Windows 虚拟环境，移动后可能记录发送者的旧绝对路径；环境脚本会检测并自动重建它。安装依赖需要网络，若接收方没有网络，应提前准备相同版本的 Python 依赖环境。

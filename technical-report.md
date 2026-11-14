@@ -69,6 +69,8 @@
 
 贪心 token、固定 seed 随机采样和跨 512 context 上限重建的输出都一致；增量 logits 最大绝对差约 `4.77e-6`。由于模型小、生成长度短，Python 和 GPU 调度开销占比高，实测收益很小，但正确性和轻微速度收益均被记录。详细数据在 `experiments/english_single/task_a/kv-cache-results.json`。
 
+交付审计时发现：2026-11-14 在已完成预算的训练入口执行后，最终 checkpoint 被重新保存；没有新的优化器更新，但文件 SHA-256 与 Task A 原始记录不再相同。原始哈希和计时保留，当前文件不能用于原始字节级哈希复核。具体数值和原因见 Task A 专门报告；训练入口已修正为完成后不覆盖文件。
+
 ## 任务 B：训练 context 切换 dynamics
 
 完整问题、假设、设计和结果见 `experiments/english_single/task_b/task-b-report.md`。两条父路径从同一随机初始化开始；同一父路径的两个子分支再从完全相同的父状态分叉。父阶段各 80,003,072 token，第二阶段再训练同样预算。主要指标是固定英文目标上的 `L128`、`L256`、`L512` 和 `G=L128-L512`。

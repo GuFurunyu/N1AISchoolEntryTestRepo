@@ -2,6 +2,8 @@
 
 这是一个用于完成N1 AI School考核的个人实验项目。项目从随机初始化开始训练一个可在个人 RTX 4060 Laptop GPU 上运行的小型 decoder-only Transformer，并记录模型实现、训练过程、调试问题和受控实验结果。
 
+**发送考核材料时，只发送根目录下的 `submission_english_single/` 文件夹。** 它是当前英文单语方案的独立复核包，包含可运行的源码、数据、tokenizer、最终模型、Task B 状态和实验记录。请只压缩该文件夹，不要把外层完整项目一起压缩；包内的 `交付包说明.txt` 列出运行条件和复核入口。该大文件夹被 Git 忽略，因此仅提供 GitHub 仓库链接不足以交付模型和数据。原项目保留旧中英方案及周期 checkpoint，供本地历史复盘。
+
 ## 考核内容
 
 考核要求分为两个主要任务：
@@ -46,7 +48,13 @@ Task A 和 Task B 均已使用英文单语方案重新完成。旧的中英混�
 
 ## 最小运行入口
 
-所有命令默认从项目根目录运行。当前英文基础训练的启动脚本是：
+所有命令默认从项目根目录运行。首次在另一台电脑解压后，先执行环境准备脚本；它会检查或重建因路径变化而失效的 `.venv`，然后安装依赖：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup_env.ps1
+```
+
+环境准备完成后，当前英文基础训练的启动脚本是：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\train_english_single.ps1
@@ -97,3 +105,7 @@ experiments/english_single/task_b/tensorboard/
 ## `Doc文档/` 目录
 
 `Doc文档/` 是个人工作目录，用来保存考核原文、讨论记录、草稿和其他文档材料。它不属于模型代码、训练数据、tokenizer 或实验结果，也不会作为训练语料使用。
+
+## GitHub库链接
+
+本项目存储在一个GitHub库，链接为https://github.com/GuFurunyu/N1AISchoolEntryTestRepo（如果你是在GitHub上看到的那么你正在这个网址）。可在该链接查看项目commit记录等信息。需要注意由于存储空间限制，训练和记录数据以及其它许多文件没有上传到GitHub，因此仅从此处下载是不完整的

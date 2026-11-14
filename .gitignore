@@ -11,3 +11,5 @@ runs/
 __pycache__/
 *.pyc
 *.log
+submission_english_single/
+submission_english_single.zip

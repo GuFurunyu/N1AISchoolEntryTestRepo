@@ -168,9 +168,23 @@ N1AISchoolEntryTestRepo/
 │  ├─ setup_env.ps1                              # 项目内环境安装
 │  ├─ prepare_data.ps1、train.ps1                # 【历史保留】旧中英入口
 │  ├─ view_logs.ps1                              # 【历史保留】旧中英 TensorBoard
-│  └─ view_task_b_logs.ps1                       # 当前仍指向旧 Task B 日志；英文查看命令见 README
+│  └─ view_task_b_logs.ps1                       # 【当前正式】启动英文 Task B 四路径 TensorBoard
 │
 ├─ technical-report.md                           # 当前英文方案总实验报告
+├─ submission_english_single/                    # 【独立交付包】只压缩并发送此目录
+│  ├─ 交付包说明.txt、交付包关键文件SHA256.txt     # 接收方入口与关键文件校验
+│  ├─ 项目结构.txt                             # 包内实际结构
+│  ├─ README.md、模型方案.txt、操作说明.txt        # 包内的总体、设计和操作说明
+│  ├─ technical-report.md、requirements.txt      # 总报告与依赖版本
+│  ├─ .runtime/python/                           # Windows Python 3.12；不含原电脑 .venv
+│  ├─ Doc文档/考核任务.docx                       # 考核原文
+│  ├─ src/、scripts/、configs/、notes/             # 源码、英文入口、配置、研究与 debug 记录
+│  ├─ data/english_single/、tokenizer/english_single/ # 正式英文数据与 tokenizer
+│  ├─ checkpoints/english_single/
+│  │  ├─ base/final_step_00029297.pt            # 基础最终状态；不含周期文件
+│  │  └─ task_b/                                # initial、两父阶段、四子路径，共七份状态
+│  ├─ experiments/english_single/                 # 当前 Task A/B 报告、日志、指标和曲线
+│  └─ experiments/task_b/、runs/                  # 少量旧实验日志，仅供历史复盘
 ├─ 模型方案.txt                                  # 当前正式方案与历史边界
 ├─ 项目结构.txt                                  # 本文件
 ├─ README.md                                     # 当前英文方案运行和结果入口

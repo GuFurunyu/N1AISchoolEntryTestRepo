@@ -5,6 +5,7 @@ This file records real problems observed during the run. Do not add an issue unt
 > 本日志同时保留旧中英方案与新英文单语方案的问题。2026-11-10 的条目属于旧方案；
 > 2026-11-11 的英文训练恢复与英文 Task B 提示词问题属于当前方案。
 > 这些问题由 Codex 协助发现、定位或修复，不应表述为使用者独立完成。
+> 2026-11-14 的交付审计还发现完成后的训练入口会重新保存同名 checkpoint；见末尾条目。
 
 ## Entry template
 
@@ -96,3 +97,16 @@ This file records real problems observed during the run. Do not add an issue unt
 - Fix: Select Chinese documents when a validation file contains Chinese; otherwise select sufficiently long English documents and use a generic error message.
 - Evidence after the fix: The code now supports both the frozen bilingual Task B and the new English-only Task B; this first failed launch created no new checkpoint.
 - What I would check first next time: Run language and prompt-length assertions before starting a long experiment.
+
+## 2026-11-14 Completed training entry rewrote the final checkpoint
+
+- Date/time: 2026-11-14
+- Command or stage: Portability audit of the completed English base training entry
+- Symptom: The current final checkpoint SHA-256 no longer matched the original SHA-256 in the Task A measurement record.
+- First measurement: `kv-cache-results.json` recorded `5197FC8E...`; the current `final_step_00029297.pt` was `75D058EB...`.
+- Hypotheses: A new optimizer update occurred, the wrong checkpoint was selected, or an already completed run reserialized the same state.
+- Checks performed: Reviewed the completed run output and `train.py` control flow. It loaded step 29297 with planned step 29297, did not enter the training loop, then unconditionally called `save_checkpoint` on the same final path.
+- Root cause: The completed-run path overwrote its own checkpoint despite zero new updates. Re-serialization changed the file hash; the original byte-identical file is no longer available.
+- Fix: Return before opening a new TensorBoard writer or writing a checkpoint when the loaded step already meets the planned step count. Keep the old Task A measurement and original hash unchanged, and document the current file hash separately.
+- Evidence after the fix: Static control-flow review confirms the completed path returns before the final save. The Task A report records both file hashes; no new timing experiment was performed.
+- What I would check first next time: Treat completed checkpoints as immutable and compare recorded hashes before any packaging or resume check.

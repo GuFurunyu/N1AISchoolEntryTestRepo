@@ -1,12 +1,48 @@
 # 依赖安装中遇到 PowerShell 错误就停止。
+param(
+    # 解压后的 .venv 可能仍记录发送者的旧路径；需要时强制重建它。
+    [switch]$RecreateVenv
+)
 $ErrorActionPreference = "Stop"
+
 # 项目根目录是 scripts 的父目录；依赖装进项目的 .venv。
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$Python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+$VenvDir = Join-Path $ProjectRoot ".venv"
+$Python = Join-Path $VenvDir "Scripts\python.exe"
+$BundledPython = Join-Path $ProjectRoot ".runtime\python\python.exe"
 
-# 本脚本只安装依赖，不创建虚拟环境；必须先有 .venv。
-if (-not (Test-Path $Python)) {
-    throw "Project Python is missing. Create .venv first."
+function New-ProjectVenv {
+    if (Test-Path $BundledPython) {
+        $BasePython = $BundledPython
+    } else {
+        $Command = Get-Command python -ErrorAction SilentlyContinue
+        if ($null -eq $Command) {
+            throw "No Python interpreter found. Install Python 3.12 or provide .runtime\python\python.exe."
+        }
+        $BasePython = $Command.Source
+    }
+    & $BasePython -m venv $VenvDir
+    if ($LASTEXITCODE -ne 0) { throw "Project virtual environment creation failed." }
+}
+
+if ($RecreateVenv -and (Test-Path $VenvDir)) {
+    Remove-Item -LiteralPath $VenvDir -Recurse -Force
+}
+
+# Windows venv 会把创建时的基础 Python 路径写入 pyvenv.cfg。
+# 项目被移动后，如果旧基础路径不存在，就自动重建本项目环境。
+$VenvUsable = Test-Path $Python
+if ($VenvUsable) {
+    $BasePrefix = & $Python -c "import sys; print(sys.base_prefix)" 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $BasePrefix "python.exe"))) {
+        $VenvUsable = $false
+    }
+}
+if (-not $VenvUsable) {
+    if (Test-Path $VenvDir) {
+        Remove-Item -LiteralPath $VenvDir -Recurse -Force
+    }
+    New-ProjectVenv
 }
 
 # pip 下载缓存放在项目内，方便查看或清理。
