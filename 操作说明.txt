@@ -1,0 +1,250 @@
+小型 Transformer 模型操作说明
+
+本文对应当前正式的英文 TinyStories 单语方案。所有命令默认从项目根目录执行：
+
+cd D:\GitHub\N1AISchoolEntryTestRepo
+
+一、开始或继续基础训练
+========================
+
+启动脚本：
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\train_english_single.ps1
+
+该脚本使用：
+- 配置：configs/english_single/base.yaml
+- 模型 checkpoint：checkpoints/english_single/base/
+- 日志：experiments/english_single/base/tensorboard/
+- --resume auto：自动加载英文目录中最新的 checkpoint
+
+当前基础训练已经完成 240,001,024 seen tokens，因此直接再次运行会发现训练目标已经达到，不会重新训练。
+
+如果要把总预算提高到 260,000,000 tokens：
+
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\train_english_single.ps1 --max-tokens 260000000
+
+也可以直接运行 Python：
+
+.\.venv\Scripts\python.exe -m src.train `
+  --config configs/english_single/base.yaml `
+  --resume auto `
+  --max-tokens 260000000
+
+提高 max_tokens 会改变 cosine learning rate 的时间表，应把它记录成新的训练阶段。
+
+二、从头开始新的训练
+====================
+
+不要直接在现有 base 目录中使用 --resume none，否则新旧 checkpoint 和日志可能混在一起。
+
+推荐先复制配置：
+
+Copy-Item configs\english_single\base.yaml configs\english_single\base_trial.yaml
+
+然后修改 base_trial.yaml，例如：
+
+train:
+  seed: 42001
+  max_tokens: 5000000
+  output_dir: checkpoints/english_single/base_trial
+  log_dir: experiments/english_single/base_trial/tensorboard
+
+再启动：
+
+.\.venv\Scripts\python.exe -m src.train `
+  --config configs/english_single/base_trial.yaml `
+  --resume none
+
+三、停止训练
+============
+
+首选在正在训练的终端按 Ctrl+C。程序会尝试保存可恢复的中断 checkpoint：
+
+checkpoints/english_single/base/interrupt_step_XXXXXXXX.pt
+
+下次使用 --resume auto 可以继续。
+
+如果训练在另一个窗口运行，可以查找相关进程：
+
+Get-CimInstance Win32_Process |
+  Where-Object {
+    $_.CommandLine -match "src\.train|src\.task_b_experiment"
+  } |
+  Select-Object ProcessId,CommandLine
+
+必要时按 PID 停止：
+
+Stop-Process -Id <PID>
+
+强制停止可能来不及保存新的中断 checkpoint，因此优先使用 Ctrl+C。
+
+四、查看训练状态
+================
+
+查看最近的英文训练和验证日志：
+
+Get-Content experiments\english_single\base\tensorboard\train.jsonl -Tail 20
+
+常见字段：
+- step：optimizer 更新次数
+- tokens_seen：累计处理的目标 token
+- train_loss：训练 loss
+- val_loss：英文验证 loss
+- learning_rate：当前学习率
+- grad_norm：梯度范数
+- tokens_per_second：训练速度
+
+查看最近 checkpoint：
+
+Get-ChildItem checkpoints\english_single\base\*.pt |
+  Sort-Object Name |
+  Select-Object -Last 10
+
+查看 GPU 使用情况：
+
+nvidia-smi
+
+五、查看 TensorBoard 曲线
+========================
+
+基础训练：
+
+.\.venv\Scripts\python.exe -m tensorboard.main `
+  --logdir experiments/english_single/base/tensorboard `
+  --port 6006
+
+浏览器打开：http://localhost:6006
+
+Task B 四条路径：
+
+.\.venv\Scripts\python.exe -m tensorboard.main `
+  --logdir experiments/english_single/task_b/tensorboard `
+  --port 6007
+
+浏览器打开：http://localhost:6007
+
+查看 Task B 状态：
+
+Get-Content experiments\english_single\task_b\status.json
+Get-Content experiments\english_single\task_b\completion.json
+
+Task B 当前四条路径已经完成。只查看已有结果时，不要重新训练，可以使用：
+
+.\.venv\Scripts\python.exe -m src.task_b_experiment `
+  --shared configs/english_single/task_b_shared.yaml `
+  --compare-only
+
+六、测试生成文本
+================
+
+使用基础模型生成英文故事：
+
+.\.venv\Scripts\python.exe -m src.sample `
+  --config configs/english_single/base.yaml `
+  --checkpoint checkpoints/english_single/base/final_step_00029297.pt `
+  --prompt "Once upon a time" `
+  --max-new-tokens 120 `
+  --seed 1337
+
+重要参数：
+- --prompt：输入提示词
+- --max-new-tokens：最多生成的新 token 数
+- --temperature：随机程度，越高越随机
+- --top-k：只从概率最高的 k 个 token 中采样
+- --seed：随机种子
+
+更确定的生成：
+
+.\.venv\Scripts\python.exe -m src.sample `
+  --config configs/english_single/base.yaml `
+  --checkpoint checkpoints/english_single/base/final_step_00029297.pt `
+  --prompt "Once upon a time" `
+  --max-new-tokens 120 `
+  --temperature 1.0 `
+  --top-k 1 `
+  --seed 1337
+
+更随机的生成：
+
+.\.venv\Scripts\python.exe -m src.sample `
+  --config configs/english_single/base.yaml `
+  --checkpoint checkpoints/english_single/base/final_step_00029297.pt `
+  --prompt "Once upon a time" `
+  --max-new-tokens 120 `
+  --temperature 0.9 `
+  --top-k 50 `
+  --seed 1337
+
+使用 KV cache：
+
+.\.venv\Scripts\python.exe -m src.sample `
+  --config configs/english_single/base.yaml `
+  --checkpoint checkpoints/english_single/base/final_step_00029297.pt `
+  --prompt "Once upon a time" `
+  --max-new-tokens 120 `
+  --seed 1337 `
+  --kv-cache
+
+--kv-cache 只改变推理计算方式，不改变模型参数。
+
+七、评估验证 loss 和 perplexity
+===============================
+
+.\.venv\Scripts\python.exe -m src.evaluate `
+  --config configs/english_single/base.yaml `
+  --checkpoint checkpoints/english_single/base/final_step_00029297.pt `
+  --batches 100
+
+该命令只进行验证，不更新模型参数。输出的是英文验证 loss 和 perplexity；它衡量下一个 token 的预测能力，不等于完整的文本质量评分。
+
+八、调整训练参数
+================
+
+基础配置文件：configs/english_single/base.yaml
+
+常用参数：
+- max_tokens：总训练 token 预算，当前为 240000000
+- micro_batch_size：一次 forward 的序列数，当前为 4，主要影响显存
+- grad_accum_steps：梯度累积次数，当前为 4
+- block_size：训练上下文长度，当前为 512
+- learning_rate：初始最大学习率，当前为 0.0003
+- min_learning_rate：cosine decay 最低学习率，当前为 0.00003
+- warmup_steps：warmup 步数，当前为 500
+- weight_decay：AdamW 权重衰减，当前为 0.1
+- grad_clip：梯度裁剪阈值，当前为 1.0
+- log_interval：训练日志间隔，当前为 20 步
+- eval_interval：验证间隔，当前为 250 步
+- checkpoint_interval：checkpoint 间隔，当前为 1000 步
+- seed：随机种子，当前为 41001
+
+每次 optimizer 更新的有效 token 数为：
+
+micro_batch_size × grad_accum_steps × block_size
+= 4 × 4 × 512
+= 8192 tokens
+
+修改 micro_batch_size 会改变显存占用；修改 grad_accum_steps 会改变有效 batch；修改 block_size 会改变模型训练看到的上下文。它们都应在实验记录中说明。
+
+修改以下结构或 tokenizer 参数后，不应直接恢复已有 checkpoint：
+- vocab_size
+- block_size
+- n_layer
+- n_head
+- n_embd
+- tokenizer_model
+
+这些参数会影响 embedding、attention、位置编码、输出层或 token ID 映射，通常应使用新的配置、checkpoint 目录和日志目录重新训练。
+
+九、当前文件入口
+================
+
+- 当前模型方案：模型方案.txt
+- 当前目录结构：项目结构.txt
+- 本操作说明：操作说明.txt
+- 模型逐层解释：notes/model-walkthrough.md
+- Task A 报告：experiments/english_single/task_a/kv-cache-report.md
+- Task B 报告：experiments/english_single/task_b/task-b-report.md
+- 总实验报告：technical-report.md
+- 真实问题记录：notes/debug-log.md
+
+如果训练命令、配置路径、checkpoint 路径、日志路径或参数含义发生变化，应同步修改本文件。

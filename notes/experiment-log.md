@@ -1,4 +1,8 @@
-# Experiment Log
+# Historical Experiment Log: Bilingual Training
+
+> 历史保留：本文件记录旧 TinyStories 英文 + 中文 Wikipedia 混合方案。
+> 当前正式英文单语训练的原始日志在 `experiments/english_single/base/tensorboard/train.jsonl`，
+> 结论见 `technical-report.md`。下列旧指标不与新英文指标合并。
 
 Record the data version, tokenizer version, configuration, token count, validation loss, perplexity, throughput, and fixed-prompt samples for each training run.
 

@@ -12,7 +12,7 @@
 8. [失败分析、限制和仍未知的内容](#失败分析限制和仍未知的内容)
 9. [技术复核准备](#技术复核准备)
 
-本报告按“先定义系统，再说明控制条件，再给结果，最后说明失败和边界”的顺序组织。这样每个结论都能回到配置、日志、checkpoint 或固定数据，而不是只依赖生成样例。
+本报告按“先定义系统，再说明控制条件，再给结果，最后说明失败和边界”的顺序组织。这样每个结论都能回到配置、日志、checkpoint 或固定数据，而不是只依赖生成样例。英文 Task B 的专门计划文档是在实验后整理的；更早的旧中文计划保留了研究问题和四路径设计，不能把英文文档称为预注册。
 
 ## 项目目标和正式方案
 
@@ -50,11 +50,11 @@
 - Task A：`experiments/english_single/task_a/`，只加载英文基础训练最终 checkpoint。
 - Task B：`configs/english_single/task_b/`、`checkpoints/english_single/task_b/`、`experiments/english_single/task_b/`。
 
-`data/english_single/manifest.json` 和 Task B manifest 固定 train/val/tokenizer 的 SHA-256。新模型从随机初始化开始，optimizer、GradScaler、RNG、训练步数和验证指标均在新目录建立。新配置没有旧中文区域和语言采样参数；整个输入文件按英文单语处理。因此旧 token ID、旧 embedding/output 行和旧优化器状态都不会进入新实验。
+`data/english_single/manifest.json` 和 Task B manifest 固定 train/val/tokenizer 的 SHA-256。新模型从随机初始化开始，optimizer、GradScaler、RNG、训练步数和验证指标均在新目录建立。新配置仍有为兼容共用代码而存在的语言边界字段，但 `train_english_tokens: 0`、`val_english_tokens: 0` 与 `english_sample_probability: 1.0` 使整个新文件按英文单语处理，不读取旧中文区域。因此旧 token ID、旧 embedding/output 行和旧优化器状态都不会进入新实验。
 
 ## 基础训练结果
 
-英文 TinyStories 训练文档 196,702 篇、验证文档 3,947 篇；训练 42,074,460 token、验证 842,751 token。基础训练累计 240,001,024 seen tokens，最终 checkpoint 为 `checkpoints/english_single/base/final_step_00029297.pt`，最后英文验证 loss 约 1.5810，perplexity 约 4.8599。
+英文 TinyStories 训练文档 196,702 篇、验证文档 3,947 篇；训练 42,074,460 token、验证 842,751 token。基础训练累计 240,001,024 seen tokens，最终 checkpoint 为 `checkpoints/english_single/base/final_step_00029297.pt`。训练日志最后一次验证发生在第 29,250 步，英文 loss 约 1.5810，perplexity 约 4.8599；这不是对第 29,297 步最终权重单独重新评估的数字。
 
 训练曾在第 6000 步暂停，恢复时触发 CUDA RNG 类型问题；修复后从新英文 checkpoint 正常恢复并完成。这个过程作为真实 debug 记录保存在 `notes/debug-log.md`。
 
@@ -71,7 +71,7 @@
 
 ## 任务 B：训练 context 切换 dynamics
 
-完整问题、假设、设计和结果见 `experiments/english_single/task_b/task-b-report.md`。四条路径从相同随机状态分叉，父阶段各 80,003,072 token，第二阶段再训练同样预算。主要指标是固定英文目标上的 `L128`、`L256`、`L512` 和 `G=L128-L512`。
+完整问题、假设、设计和结果见 `experiments/english_single/task_b/task-b-report.md`。两条父路径从同一随机初始化开始；同一父路径的两个子分支再从完全相同的父状态分叉。父阶段各 80,003,072 token，第二阶段再训练同样预算。主要指标是固定英文目标上的 `L128`、`L256`、`L512` 和 `G=L128-L512`。
 
 最终结果如下：
 
@@ -94,13 +94,13 @@
 
 首次启动 Task B 在写 checkpoint 前报 `Not enough long Chinese documents`。检查英文验证文件和 prompt selector 后发现旧逻辑硬编码中文 Unicode 范围。改为检测到中文时使用中文，否则选择足够长英文文档；失败启动没有产生新 checkpoint。
 
-这两件事都写入 `notes/debug-log.md`，包括症状、检查、根因、修复和下次应先做的检查。
+这两件事都写入 `notes/debug-log.md`，包括症状、检查、根因、修复和下次应先做的检查。发现、定位和修复由 Codex 协助完成；技术复核时不能说成使用者独立完成。
 
 ## 失败分析、限制和仍未知的内容
 
 旧方案的字符预算没有得到预期 token 比例，这是迁移纯英文方案的直接原因：英文和中文 token 化效率及文体差异造成了实验混杂。这个失败被保留为历史设计复盘，旧指标没有并入新结论。
 
-新 Task B 只有一个随机种子、一个 TinyStories 划分和一个模型规模，不能声称结论普遍适用于所有模型。`G` 还混合了可见历史、RoPE 位置和窗口边界效应；没有自动文本质量指标；也没有测试多个切换点或多次切换。下一步若继续研究，应先增加随机种子或切换点，而不是只延长生成样例。
+新 Task B 只有一个随机种子、一个 TinyStories 划分和一个模型规模，不能声称结论普遍适用于所有模型。`G` 还混合了可见历史、RoPE 位置和窗口边界效应；没有自动文本质量指标；也没有测试多个切换点或多次切换。英文计划文档在实验完成后整理，不能作为英文假设事前登记的证据。报告初稿还误把父阶段第 5,000 步的数据放到子阶段“中点”；已根据 `comparison.csv` 更正为全局第 14,766 步。下一步若继续研究，应先增加随机种子或切换点，而不是只延长生成样例。
 
 ## 技术复核准备
 

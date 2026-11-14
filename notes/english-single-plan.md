@@ -1,4 +1,4 @@
-# 英文单语实验计划
+# 英文单语方案：设计与完成记录
 
 ## 目的
 
@@ -16,4 +16,11 @@
 
 新基础训练使用 `configs/english_single/base.yaml`。Task A 使用新基础训练最终 checkpoint，结果写入 `experiments/english_single/task_a/`。Task B 使用 `configs/english_single/task_b_shared.yaml` 和其下四条阶段配置，检查点和结果分别写入 `checkpoints/english_single/task_b/` 与 `experiments/english_single/task_b/`。
 
-新配置的 `train_english_tokens: 0`、`val_english_tokens: 0` 是单语标记：训练窗口从整个英文文件随机抽取，验证窗口从整个英文验证文件均匀抽取，不存在中文区域或语言采样概率。所有新报告必须记录配置、文件哈希、tokenizer 哈希和 checkpoint 哈希。
+新配置的 `train_english_tokens: 0`、`val_english_tokens: 0` 是单语标记：训练窗口从整个英文文件随机抽取，验证窗口从整个英文验证文件均匀抽取，不存在中文区域或按语言抽样。数据、tokenizer 和配置身份由各自 manifest 与配置文件复核；Task A 的原始 JSON 还记录基础 checkpoint 哈希。
+
+## 实际完成情况
+
+- 基础训练完成 29,297 步、240,001,024 seen tokens；最终状态为 `checkpoints/english_single/base/final_step_00029297.pt`。第 29,250 步英文验证 loss 1.5810、perplexity 4.8599。
+- Task A 已用新英文模型完成 KV cache 对照；32 和 256 token 提示词均测得约 1.02 倍加速。报告在 `experiments/english_single/task_a/kv-cache-report.md`，原始 JSON 记录了 checkpoint SHA-256。
+- Task B 已从另一个共同随机初始状态完成四条路径，`completion.json` 记录数据链一致。报告在 `experiments/english_single/task_b/task-b-report.md`；该目录的 manifest 记录数据、tokenizer 和配置身份，各阶段 checkpoint 保存在独立路径。
+- 本文件是迁移设计和完成状态的说明。英文 Task B 的详细假设文档是在训练后整理的，不能将其称为英文实验的预注册。

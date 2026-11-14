@@ -1,139 +1,99 @@
 # 小型 Transformer 语言模型
 
-这是一个从零训练的 decoder-only Transformer。当前正式实验是英文 TinyStories 单语方案；此前的中英混合方案完整保留为历史记录。模型规格见 `模型方案.txt`，目录说明见 `项目结构.txt`。
+这是一个用于完成N1 AI School考核的个人实验项目。项目从随机初始化开始训练一个可在个人 RTX 4060 Laptop GPU 上运行的小型 decoder-only Transformer，并记录模型实现、训练过程、调试问题和受控实验结果。
 
-## 当前状态
+## 考核内容
 
-英文单语重建已完成，正式文件位于 `configs/english_single/`、`data/english_single/`、`tokenizer/english_single/`、`checkpoints/english_single/` 和 `experiments/english_single/`。旧中英方案的所有数据、tokenizer、checkpoint、日志和 Task A/Task B 结果不删除，也不用于新实验。
+考核要求分为两个主要任务：
 
-- Python 3.12 运行时：`.runtime/python/`
-- 独立环境：`.venv/`
-- CUDA PyTorch：`2.5.1+cu124`
-- 模型参数：33,412,096
-- 语料：训练集 112,968,440 tokens；验证集 2,401,669 tokens
-- 数据源：TinyStories 英文 + 中文 Wikipedia
-- tokenizer：16k SentencePiece Unigram
-- GPU smoke test、真实数据 forward/backward、pilot 训练、checkpoint 恢复均已通过
-- 正式训练已完成：step 29,297，累计 240,001,024 seen tokens；最终 checkpoint：`checkpoints/final_step_00029297.pt`
-- 最终独立评估（中英文各 100 batch）：英文 loss 1.64872，中文 loss 4.38744，加权 loss 2.60727
+- **任务 A：从零理解并训练模型**。需要能够解释 token、embedding、causal attention、MLP、logits、loss、反向传播和优化器的完整链路，并记录至少一次真实问题及其定位过程。任务 A 还要求从 inference optimization 或 ML Systems replication 中完成一个小实验。
+- **任务 B：研究 training dynamics**。需要提出一个尚不知道答案的问题，先写出假设，再设计尽量一次只改变一个变量的 controlled experiments，分析失败和与假设冲突的结果，并形成技术报告。
 
-上面旧中英指标属于历史方案。当前英文单语正式结果是：基础训练 240,001,024 seen tokens，最终 checkpoint 为
-`checkpoints/english_single/base/final_step_00029297.pt`，英文验证 loss 约 1.5810；Task A 和 Task B 的完整结果分别见
-`experiments/english_single/task_a/kv-cache-report.md` 和 `experiments/english_single/task_b/task-b-report.md`。
+本项目当前完成的实验是：
 
-逐层结构、张量形状和训练链路见 `notes/model-walkthrough.md`。训练后段验证 loss 下降明显放缓，但尚未完全停止。英文生成有故事结构，中文生成仍缺乏可靠的整体语义。
+- 任务 A：比较普通自回归生成和 KV cache 推理，属于inference optimization；
+- 任务 B：比较训练过程中上下文长度保持不变、从 128 增长到 512、从 512 截短到 128 等路径对模型训练动态的影响。
 
-## 架构与张量路径
+## 当前正式方案
 
-输入文本先由 SentencePiece 切成 token，再映射成整数 ID。训练 batch 的输入 `input_ids` 和目标 `targets` 形状都是 `[B,T]`；目标是输入向右移动一个 token。
+当前正式方案只使用英文 TinyStories，并使用单独训练的英文 SentencePiece tokenizer。模型为 8 层、512 hidden、8 heads、最大上下文 512 token，约 3341 万参数，使用 AdamW、FP16 mixed precision、gradient accumulation 和 cosine learning-rate decay。
 
-1. `token_embedding` 查表，将 `[B,T]` 的 ID 变成 `[B,T,512]` 的向量。每个 token 的 512 个值是模型可训练参数。
-2. 每个 Transformer block 先做 LayerNorm，再用一个线性层产生 Q、K、V；它们被拆成 8 个 head，每个 head 维度 64。RoPE 旋转 Q 和 K 来提供位置信息。
-3. Attention 计算 `Q @ K^T / sqrt(64)`，把未来位置 mask 成负无穷，softmax 后对 V 加权求和。8 个 head 的输出拼接，再通过输出线性层投影回 512 维。
-4. 残差连接将 attention 输出加回输入。第二个 LayerNorm 后，MLP 把 512 维扩展到 2048 维，经过 GELU，再压回 512 维；结果再次通过残差连接加回。
-5. 8 个 block 后经过最后的 LayerNorm，用与输入 embedding 共享权重的输出层得到 `[B,T,16000]` logits。每个位置的 16000 个值是下一个 token 的未归一化分数。
-6. Cross entropy 将 logits 与正确的下一个 token ID 比较，得到标量 loss。`backward()` 通过计算图求梯度，AdamW 根据梯度、动量和权重衰减更新参数。梯度累积 4 个 micro-batch 后才更新一次。
+当前基础训练结果：
 
-主要代码入口：`src/model.py`（架构）、`src/dataset.py`（训练窗口）、`src/train.py`（loss/backward/AdamW/checkpoint）、`src/sample.py`（生成）。
+- 训练 29,297 steps，累计处理 240,001,024 tokens；
+- 最终 checkpoint：`checkpoints/english_single/base/final_step_00029297.pt`；
+- 最近记录的英文验证 loss：1.5810；
+- 最近记录的 perplexity：4.8599。
 
-## 训练控制
+Task A 和 Task B 均已使用英文单语方案重新完成。旧的中英混合方案仍保留在项目中，作为迁移记录、问题复盘和历史结果，不能与当前正式实验混用。
 
-所有命令从项目根目录执行。
+## 文档入口
 
-```powershell
-# 测试模型 forward、loss、backward 和参数更新
-.\.venv\Scripts\python.exe -m src.smoke_test
+项目中的详细说明分为三个根目录 TXT 文件，README 仅说明总体信息：
 
-# 查看 GPU 速度和显存（使用随机 token）
-.\.venv\Scripts\python.exe -m src.benchmark --steps 20
+- [模型方案.txt](模型方案.txt)：模型架构、数据、tokenizer、训练超参数、Task A/Task B 设计和历史边界；
+- [操作说明.txt](操作说明.txt)：如何开始、继续和停止训练，查看日志与 TensorBoard，生成文本，评估模型以及修改参数；
+- [项目结构.txt](项目结构.txt)：项目目录、当前正式文件、历史保留文件、日志、checkpoint 和实验结果的详细位置。
 
-# 开始或自动恢复训练；当前目标已经完成，直接运行会立即结束
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\train.ps1
+其他重要材料：
 
-# 指定训练目标（seen tokens，适合短试跑）
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\train.ps1 --max-tokens 5000000
+- [模型逐层讲解](notes/model-walkthrough.md)：从 token 到 optimizer 的代码链路；
+- [Task A 报告](experiments/english_single/task_a/kv-cache-report.md)：KV cache 方法、测量结果和限制；
+- [Task B 设计](notes/task-b-english-single-plan.md)：研究问题、假设和 controlled experiment 设计；
+- [Task B 报告](experiments/english_single/task_b/task-b-report.md)：四条训练路径的完整结果与分析；
+- [总技术报告](technical-report.md)：按照考核要求整理的总实验报告；
+- [真实问题记录](notes/debug-log.md)：训练和实验中遇到的问题、定位过程和修复记录。
 
-# 查看训练曲线（浏览器访问 http://localhost:6006）
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\view_logs.ps1
+## 最小运行入口
 
-# 在终端看最近日志
-Get-Content runs\train.jsonl -Tail 20
-
-# 检查 GPU 利用率和显存
-nvidia-smi
-```
-
-训练中按 `Ctrl+C` 可停止。程序会尝试保存中断 checkpoint；若终端强制结束进程，使用最近的周期 checkpoint 恢复。`--resume auto` 默认选取步数最大的 checkpoint，`--resume none` 从随机初始化开始。checkpoint 保存在 `checkpoints/`，包括模型、AdamW 状态、GradScaler 状态、步数和配置。不要同时启动两个训练进程写入同一个 `checkpoints/` 目录。
-
-断点恢复会读回 PyTorch 随机数状态，但 DataLoader 的窗口缓冲未保存，因此恢复后的样本顺序不保证逐个与未中断运行相同。
-
-训练参数在 `configs/base.yaml` 中修改。`micro_batch_size` 控制一次 forward/backward 的样本数；`grad_accum_steps` 控制多少次反向传播后更新一次；它们与 `block_size` 的乘积是每步的有效 token 数。修改模型结构、词表大小或 tokenizer 后，旧 checkpoint 通常不能直接恢复。
-
-## 查看效果
+所有命令默认从项目根目录运行。当前英文基础训练的启动脚本是：
 
 ```powershell
-# 在 Windows 终端显示中文输出
-$env:PYTHONIOENCODING = 'utf-8'
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-
-# 分别报告英文、中文及按 65%/35% 加权的验证 loss
-.\.venv\Scripts\python.exe -m src.evaluate --checkpoint checkpoints\final_step_00029297.pt --batches 100
-
-# 英文生成
-.\.venv\Scripts\python.exe -m src.sample --checkpoint checkpoints\final_step_00029297.pt --prompt "Once upon a time" --max-new-tokens 120 --seed 1337
-
-# 中文生成
-.\.venv\Scripts\python.exe -m src.sample --checkpoint checkpoints\final_step_00029297.pt --prompt "从前有一个" --max-new-tokens 120 --seed 1337
-
-# 检查语料的真实 token 比例
-.\.venv\Scripts\python.exe -m src.data_stats --text data\processed\train.txt
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\train_english_single.ps1
 ```
 
-验证口径曾变化：step 6000 之前主要评估文件开头的英文；step 6000 到 7000 采用全文件均匀抽样；step 7000 后分别评估中英文并按 65%/35% 加权。不同口径的总体 loss 不能直接相互比较，应在 `runs/train.jsonl` 中看 `val_sampling` 字段。真实问题和处理过程见 `notes/debug-log.md`。
-
-## 任务 A：KV cache 推理实验
-
-已加入可选 KV cache。它只改变生成时的计算方式，不改变模型权重：
+测试当前英文 checkpoint 的生成示例：
 
 ```powershell
-# 原路径：每生成一个 token 都重算当前上下文
-.\.venv\Scripts\python.exe -m src.sample --checkpoint checkpoints\final_step_00029297.pt --prompt "Once upon a time" --max-new-tokens 64 --seed 1337
-
-# 缓存路径：复用各层历史 K/V
-.\.venv\Scripts\python.exe -m src.sample --checkpoint checkpoints\final_step_00029297.pt --prompt "Once upon a time" --max-new-tokens 64 --seed 1337 --kv-cache
-
-# 重跑完整对照实验
-.\.venv\Scripts\python.exe -m src.inference_experiment --checkpoint checkpoints\final_step_00029297.pt --new-tokens 128 --trials 5
+.\.venv\Scripts\python.exe -m src.sample `
+  --config configs/english_single/base.yaml `
+  --checkpoint checkpoints/english_single/base/final_step_00029297.pt `
+  --prompt "Once upon a time" `
+  --max-new-tokens 120 `
+  --seed 1337
 ```
 
-实验记录见 `notes/kv-cache-report.md`，逐次数据见 `notes/kv-cache-results.json`。256-token 提示词下缓存约快 1.47–1.60 倍，32-token 提示词基本持平；输出一致，缓存路径占用的峰值显存略高。
+基础训练的 TensorBoard 日志位于：
 
-## 任务 B：英文训练上下文切换实验
-
-这是与上面已完成的基础模型相互独立的从头训练实验。正式配置在 `configs/english_single/task_b/`：两个父阶段先分别训练 128 或 512 token，上下文在每条路径训练 token 的中点保持或切换，组成四条路径。问题、事前假设和可比性条件见 `notes/task-b-english-single-plan.md`，完整结果见 `experiments/english_single/task_b/task-b-report.md`。
-
-```powershell
-# 启动；中断后再次运行同一命令会从每阶段最近的完整状态恢复。
-.\.venv\Scripts\python.exe -m src.task_b_experiment --shared configs\english_single\task_b_shared.yaml
-
-# 随时查看目前正在运行的路径和步骤。
-Get-Content experiments\english_single\task_b\status.json
-
-# 查看四路径曲线；浏览器打开 http://localhost:6007
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\view_task_b_logs.ps1
-
-# 若只需重建两个 CSV 对比表，不重新训练。
-.\.venv\Scripts\python.exe -m src.task_b_experiment --shared configs\english_single\task_b_shared.yaml --compare-only
+```text
+experiments/english_single/base/tensorboard/
 ```
 
-`experiments/english_single/task_b/comparison.csv` 是按路径筛选的长表；`comparison_wide.csv` 把四条路径并排，Excel 可直接画折线。TensorBoard 中勾选四条路径，优先看 `validation/nll_context_128`、`validation/nll_context_512` 和 `validation/long_context_gain`。同一父阶段的两条子路径在分叉前曲线重合。每个运行目录还有 `metrics.jsonl`、`effective_config.json` 和 `samples.json`；完整可续跑状态保存在 `checkpoints/english_single/task_b/`。旧 `experiments/task_b/` 仍是历史记录。
+Task B 的四条路径日志位于：
 
-## 重新准备数据
-
-已下载的原始文件保存在 `data/cache/`。如需重新构建 tokenizer 和二进制 token 文件：
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\prepare_data.ps1 --skip-download
+```text
+experiments/english_single/task_b/tensorboard/
 ```
 
-这会重训 tokenizer；重新生成的 tokenizer 可能改变 token ID，不能与旧 checkpoint 混用。完整下载命令是 `scripts/prepare_data.ps1`，会从 Hugging Face 获取 TinyStories 和中文 Wikipedia。不要在训练进行时重建数据或 tokenizer。当前训练已完成，继续训练需要提高 `max_tokens`，但这也会改变余弦学习率时间轴；应把它记录为新的训练阶段。
+启动命令、参数含义、停止和恢复方法见 [操作说明.txt](操作说明.txt)。
+
+## 代码和结果
+
+- `src/`：模型、tokenizer、数据集、训练、评估、文本生成和实验脚本；
+- `configs/english_single/`：当前英文单语方案的配置；
+- `data/english_single/`：英文训练/验证文本、token 文件和数据清单；
+- `tokenizer/english_single/`：当前正式 tokenizer；
+- `checkpoints/english_single/`：基础训练和 Task B 的模型状态；
+- `experiments/english_single/`：TensorBoard 日志、指标、对比表、报告和实验状态。
+
+完整层级和文件作用见 [项目结构.txt](项目结构.txt)。
+
+## 历史方案边界
+
+项目早期曾使用英文 TinyStories 与中文 Wikipedia 混合语料。由于两种语料在语言、文体、词汇复杂度和 token 化效率上差异较大，正式方案后来改为英文 TinyStories 单语训练。旧数据、tokenizer、checkpoint、日志、配置和失败记录均保留在原位置，作为历史资料；当前英文方案使用独立的 tokenizer、数据文件、配置、checkpoint、日志和实验目录，并从随机初始化开始。
+
+迁移原因和新旧文件边界见 [英文单语迁移记录](notes/english-single-migration.md)。
+
+## `Doc文档/` 目录
+
+`Doc文档/` 是个人工作目录，用来保存考核原文、讨论记录、草稿和其他文档材料。它不属于模型代码、训练数据、tokenizer 或实验结果，也不会作为训练语料使用。

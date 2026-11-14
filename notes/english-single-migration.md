@@ -2,7 +2,7 @@
 
 ## 旧方案冻结
 
-旧中英混合方案使用 TinyStories 英文、中文 Wikipedia、旧 SentencePiece、旧 `data/processed/`、旧 `tokenizer/spm.model`、旧 `checkpoints/`、旧 `experiments/task_b/` 和旧 `notes/kv-cache-*`。这些路径和文件作为历史记录保留，不删除、不覆盖，也不作为新实验的初始化、验证或结论来源。
+旧中英混合方案使用 TinyStories 英文、中文 Wikipedia、旧 SentencePiece、旧 `data/processed/`、旧 `tokenizer/spm.model`、根目录的旧 `checkpoints/*.pt`、旧 `checkpoints/task_b/`、旧 `runs/`、旧 `experiments/task_b/` 和旧 `notes/kv-cache-*`。旧配置 `configs/base.yaml`、`configs/task_b/` 及 `notes/experiment-log.md`、`notes/task-b-plan.md` 同样保留。这些路径和文件作为历史记录保留，不删除、不覆盖，也不作为新实验的初始化、验证或结论来源。
 
 ## 新方案隔离
 
@@ -17,4 +17,6 @@
 
 ## 可复核边界
 
-每个新实验目录保存配置快照、数据/ tokenizer SHA-256、checkpoint 路径和 JSONL/TensorBoard 记录。新报告只引用 `experiments/english_single/` 下的结果；旧结果只在迁移说明和失败复盘中作为背景提及。
+英文数据 manifest 保存文本、token 文件和 tokenizer 的 SHA-256；Task B manifest 保存其配置摘要和数据身份，各阶段另有 `effective_config.json`、`metrics.jsonl`、TensorBoard event 与完整状态。Task A 的 JSON 记录基础 checkpoint SHA-256。基础训练的配置、checkpoint 和 JSONL/TensorBoard 也分别位于英文目录。新报告的正式量化结论只引用 `experiments/english_single/` 下的结果；旧结果只在迁移说明和失败复盘中作为背景提及。
+
+迁移和两项新实验已经完成。英文基础训练的最终 checkpoint、Task A 报告和 Task B 完成标记分别位于 `checkpoints/english_single/base/final_step_00029297.pt`、`experiments/english_single/task_a/kv-cache-report.md`、`experiments/english_single/task_b/completion.json`。

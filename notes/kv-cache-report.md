@@ -1,4 +1,7 @@
-# 任务 A 小实验：KV cache 对生成速度和输出的影响
+# 历史保留：旧中英模型的任务 A KV cache 实验
+
+> 本文数据来自旧中英混合模型，不能用于当前英文单语模型的性能结论。
+> 当前正式英文实验见 `experiments/english_single/task_a/kv-cache-report.md`。
 
 ## 问题与预期
 

@@ -1,107 +1,71 @@
-小型 Transformer 语言模型方案
+小型 Transformer 语言模型方案（当前正式版本：英文 TinyStories 单语）
 
-目标
-从零训练一个可以在 RTX 4060 Laptop GPU 8 GB 显存上运行的中英混合 decoder-only causal language model，并保留足够清晰的代码结构，能够解释 token、embedding、attention、MLP、logits、loss、backward 和 optimizer 的完整过程。
+目标与边界
+- 从随机初始化训练可在 RTX 4060 Laptop GPU（8 GB 显存）上运行的小型 decoder-only 语言模型。
+- 能解释 token → embedding → attention → MLP → logits → loss → backward → AdamW。
+- 正式训练与任务 A、任务 B 均只使用英文 TinyStories；此前中英混合方案仅作历史复盘。
+- 笔记本可用内存约 13 GB。模型规模保留了多层、多头和完整训练流程，同时能在本机完成训练。
 
-硬件约束
-- GPU：RTX 4060 Laptop GPU，约 8 GB 显存
-- 可用内存：约 13 GB
-- 训练目标：约 4 小时内出现明显变化，约 12 小时内接近稳定期
+模型架构
+- Decoder-only causal Transformer；8 个 block；hidden size 512。
+- 8 个 attention heads，每个 head 64 维；MLP 为 512 → 2048 → 512，激活函数 GELU。
+- 最大上下文 512 token；RoPE 位置编码（base 10000）；Pre-LN LayerNorm；dropout 0.1。
+- 输入 token embedding 和输出 lm_head 共享权重；实际参数量 33,412,096。
+- 因果 mask 禁止读取未来 token。模型对每个输入位置输出 16,000 维的下一个 token logits。
 
-模型规格
-- 类型：Decoder-only causal Transformer
-- Transformer block：8 层
-- d_model：512
-- attention heads：8
-- head dimension：64
-- MLP hidden dimension：2048
-- 最大上下文长度：512 tokens
-- 参数量：实际 33,412,096
-- 位置编码：RoPE，base=10000
-- 归一化：Pre-LN LayerNorm
-- MLP 激活：GELU
-- attention：causal multi-head self-attention
-- dropout：0.1
-- 输入 embedding 与输出 lm_head 权重共享
+正式数据与 tokenizer
+- 唯一语料：roneneldan/TinyStories 英文故事；不使用中文 Wikipedia 或项目文档训练。
+- 按文档划分训练/验证：训练 196,702 篇，验证 3,947 篇。
+- 训练文本编码成 42,074,460 token；验证文本编码成 842,751 token。
+- 使用英文训练文本单独训练 16,000 词 SentencePiece Unigram；特殊 token 为 <pad>、<bos>、<eos>、<unk>。
+- 文件：data/english_single/processed/、tokenizer/english_single/。
+- data/english_single/manifest.json 记录来源、文档数、token 数和文件 SHA-256。
 
-训练语料
-- 英文：roneneldan/TinyStories
-- 中文：Wikimedia Wikipedia 中文配置
-- 实际唯一语料规模：训练集 112,968,440 tokens；验证集 2,401,669 tokens
-- 正式训练目标：约 2.4 亿 tokens，允许语料重复 2 到 3 个遍次
-- token 数量目标比例：英文约 65%，中文约 35%
-- 实测原始训练文件比例：英文 42,420,185 tokens（37.6%），中文 70,548,255 tokens（62.4%）
-- 前约 5,700 万 seen tokens 使用原始比例；从 step 7000 之后使用英文约 74% 的分层采样，以使 2.4 亿总训练 tokens 的累计比例接近 65%/35%
-- 验证集分开计算英文和中文 loss，并按 65%/35% 合成总体指标
-- 训练集/验证集：约 98%/2%
-- 项目文档不加入训练语料
+基础训练
+- PyTorch 2.5.1+cu124；CUDA；FP16 mixed precision 与 GradScaler。
+- micro-batch 4 条 × 512 token，梯度累积 4 次，每次 optimizer 更新处理 8,192 个目标 token。
+- AdamW：初始学习率 3e-4、最小学习率 3e-5、betas (0.9, 0.95)、weight decay 0.1。
+- 先 warmup 500 步，再 cosine decay；梯度范数裁剪到 1.0。
+- 随机窗口采样；固定验证窗口；日志和 checkpoint 定期落盘。
+- 配置：configs/english_single/base.yaml；模型、optimizer、GradScaler、训练步数和 RNG 均在新目录初始化。
+- 完成 29,297 步，共 240,001,024 seen tokens。最终模型：
+  checkpoints/english_single/base/final_step_00029297.pt。
+- 最后一次记录的英文验证 loss 为 1.5810，perplexity 为 4.8599（第 29,250 步）。
+- 训练日志：experiments/english_single/base/tensorboard/train.jsonl 与同目录 TensorBoard event 文件。
 
-Tokenizer
-- SentencePiece Unigram
-- joint vocabulary size：16,000
-- 特殊 token：<pad>、<bos>、<eos>、<unk>
-- 中文和英文使用同一个 tokenizer，方便观察不同语言的 tokenization 行为
+任务 A：KV cache 推理优化
+- 固定英文基础模型最终 checkpoint、同一提示词、相同解码参数，比较逐步重算与复用每层 K/V。
+- 每次生成 128 token，batch 1，FP32；32 与 256 token 英文提示词各测 5 次。
+- 两种长度的中位耗时加速均约 1.02 倍；贪心与固定 seed 随机输出一致。
+- 增量 logits 最大绝对差约 4.77e-6；跨 512 token 上限重建缓存时输出仍一致。
+- 原始逐次结果和方法：experiments/english_single/task_a/kv-cache-results.json、kv-cache-report.md。
 
-训练设置
-- PyTorch CUDA
-- FP16 mixed precision 与 GradScaler
-- 初始 effective batch：约 8,192 tokens
-- 默认 micro-batch：4 个序列，每个序列 512 tokens
-- 默认 gradient accumulation：4 次
-- optimizer：AdamW
-- learning rate：3e-4
-- AdamW betas：0.9、0.95
-- weight decay：0.1
-- warmup：500 optimizer steps
-- 后续使用 cosine decay
-- gradient clipping：1.0
-- 固定验证集、固定采样 prompt 和固定随机种子
+任务 B：训练中上下文长度增长或截短
+- 研究变量是训练窗口的可见历史长度，不是生成时只截断 prompt。
+- 从独立的共同随机初始状态出发：parent128、parent512 各训练 9,766 步；
+  在每条路径的 token 中点分叉成 128-128、128-512、512-512、512-128。
+- 每阶段 80,003,072 目标 token，每条完整路径 160,006,144 目标 token。
+- 四条子路径使用相同数据抽样链；相同父模型的两个子分支复制完整模型与 optimizer 状态。
+- 固定 64 个英文验证窗口，只计算最后 128 个相同目标位置；
+  L128/L256/L512 分别表示提供 128/256/512 token 历史时的平均负对数似然，
+  G=L128-L512 表示长历史相对短历史的收益。
+- 最终结果（L128, L512, G）：
+  128-128: (1.7874, 3.6949, -1.9074)
+  128-512: (1.7919, 1.6099,  0.1819)
+  512-512: (1.7931, 1.5944,  0.1986)
+  512-128: (1.7852, 1.6315,  0.1537)
+- 设计与限制：notes/task-b-english-single-plan.md；
+  完整结果：experiments/english_single/task_b/task-b-report.md。
 
-实现原则
-- 第一版显式实现 Q/K/V、causal mask、scaled dot-product attention 和 GELU，便于技术复盘。
-- 语料编码为 uint16 token 文件并使用 memory map，避免一次性加载到内存。
-- 先完成 tokenizer、forward/backward、tiny overfit 和短 benchmark，再开始长时间训练。
-- 可选的 PyTorch 高效 attention backend 只在显式实现验证正确后启用。
-- 真实遇到的问题写入 notes/debug-log.md，不预先编造失败经历。
-- 固定 prompt 生成可用 --seed 复现；断点恢复读取 PyTorch CPU/CUDA 随机状态。
+真实问题与复核
+- 英文基础训练恢复时的 CUDA RNG 设备错误、Task B 提示词选择器沿用中文条件，
+  均记录于 notes/debug-log.md；这些问题由 Codex 协助定位和修复，复核时应如实说明。
+- 总技术报告：technical-report.md；代码链路讲解：notes/model-walkthrough.md。
 
-推理优化实验（任务 A）
-- 在不改变训练结构和权重的前提下，新增可选的 KV cache 推理路径；原路径保留作对照。
-- 每层缓存历史 Key/Value，后续只处理新增 token；达到 512-token 上限时重建缓存以保持原路径的截断行为。
-- 对照使用正式训练最终 checkpoint、RTX 4060 Laptop GPU、batch=1、FP32，每次生成 128 token。
-- 32-token 提示词：缓存与无缓存约持平；256-token 提示词：英文约 1.60 倍、中文约 1.47 倍加速。
-- 缓存增加 PyTorch 峰值显存；256-token 提示词下约从 167.0 MiB 增至 176.3 MiB。
-- 贪心生成、固定种子随机采样及跨上下文上限后的输出均与无缓存路径一致。
-- 原始逐次结果见 notes/kv-cache-results.json；方法、测量问题及局限见 notes/kv-cache-report.md。
-
-训练动态实验（任务 B；独立于原模型训练）
-- 基于同一个 8 层、512 维、16k tokenizer 的模型结构，从同一随机初始权重重新训练。
-- 使用 train.bin 中文区域，先建立 128 与 512 token 两个父阶段，每阶段 9766 步、80,003,072 个目标 token。
-- 在每条完整路径的训练 token 中点复制父阶段的完整状态，形成 128-128、128-512、512-512、512-128 四条路径，各再训练 9766 步。
-- 每步两种上下文都学习相同的 8192 个目标 token；比较训练窗口切换对中文预测轨迹的影响。
-- 固定中文验证目标，分别给 128/256/512 token 历史；用三种 loss 和长历史收益随步骤变化作主要证据，生成文本作补充。
-- 正式设置见 configs/task_b/，事前假设见 notes/task-b-plan.md；正式指标写在 experiments/task_b/。
-
-时间计划
-- 正确性检查：单 batch、梯度、tiny overfit
-- 试运行：约 500 万 tokens
-- benchmark 实测：micro-batch=4、sequence length=512 时显存峰值约 1.58 GB，速度约 15,300 tokens/sec；真实训练 GPU 显存使用约 2.1 GB，吞吐约 2.9 万至 3.2 万 tokens/sec
-- 正式训练已完成：step 29,297，累计 240,001,024 seen tokens；最终 checkpoint 为 checkpoints/final_step_00029297.pt
-- 最终独立验证（中英文各 100 batch）：英文 loss 1.64872、中文 loss 4.38744、按 65%/35% 加权 loss 2.60727
-- 验证 loss 在后段下降明显放缓，但到结束时仍在小幅下降；称为接近平台，不称为完全收敛。
-
-当前正式方案：英文单语重建
-- 旧中英混合方案、旧 tokenizer、旧 checkpoint、旧 Task A/Task B 结果全部冻结为历史记录，不删除、不接续、不并入新结论。
-- 新语料只使用 `roneneldan/TinyStories`；训练文本约 196,702 篇、验证文本约 3,947 篇，训练 token 42,074,460，验证 token 842,751。
-- 新 tokenizer 是只用英文训练文本重新训练的 16,000 词 SentencePiece Unigram：`tokenizer/english_single/`。
-- 新 token 文件位于 `data/english_single/processed/`，其清单和哈希见 `data/english_single/manifest.json`。
-- 新模型仍为 8 层、512 hidden、8 heads、512 最大上下文、约 33.4M 参数，但从随机初始化开始，不能加载旧模型或旧优化器状态。
-- 新基础训练配置为 `configs/english_single/base.yaml`，状态和日志分别位于 `checkpoints/english_single/base/`、`experiments/english_single/base/`。
-- 新 Task A 和 Task B 使用 `experiments/english_single/`、`checkpoints/english_single/` 独立目录；新配置把语言边界设为 0，表示整个文件都是英文，不启用旧中文采样逻辑。
-- 迁移边界、保留策略和可复核方法记录在 `notes/english-single-migration.md`、`notes/english-single-plan.md`。
-- 英文 Task A 结果见 `experiments/english_single/task_a/kv-cache-report.md`；英文 Task B
-  技术报告见 `experiments/english_single/task_b/task-b-report.md`。
-- 总实验报告见根目录 `technical-report.md`。Task B 最终四条路径的
-  `(L128, L512, G)` 为：128-128 `(1.7874, 3.6949, -1.9074)`，
-  128-512 `(1.7919, 1.6099, 0.1819)`，512-512 `(1.7931, 1.5944, 0.1986)`，
-  512-128 `(1.7852, 1.6315, 0.1537)`。
+历史保留（非当前正式方案）
+- 原中英混合语料、旧 tokenizer、旧基础训练、旧 Task A 和未完成的旧 Task B 均原位保留。
+- 旧方案曾按字符数分配语言预算，实际 token 比例偏离目标，且两种语料文体差异大。
+- 历史路径：data/processed/、tokenizer/spm.*、configs/base.yaml、configs/task_b/、
+  checkpoints/ 根目录及 checkpoints/task_b/、runs/、experiments/task_b/、
+  notes/experiment-log.md、notes/kv-cache-report.md、notes/task-b-plan.md。
+- 历史结果不能初始化、验证或汇入当前英文单语实验。迁移记录见 notes/english-single-migration.md。

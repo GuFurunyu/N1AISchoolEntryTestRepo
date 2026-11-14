@@ -2,6 +2,10 @@
 
 This file records real problems observed during the run. Do not add an issue until it has actually happened.
 
+> 本日志同时保留旧中英方案与新英文单语方案的问题。2026-11-10 的条目属于旧方案；
+> 2026-11-11 的英文训练恢复与英文 Task B 提示词问题属于当前方案。
+> 这些问题由 Codex 协助发现、定位或修复，不应表述为使用者独立完成。
+
 ## Entry template
 
 - Date/time:
@@ -77,7 +81,7 @@ This file records real problems observed during the run. Do not add an issue unt
 - Checks performed: Confirmed the checkpoint file existed and was the new English checkpoint; inspected `torch.cuda.get_rng_state_all()` and the load path. The saved values are byte tensors, but `map_location=cuda` moves them to CUDA before restore.
 - Root cause: `torch.cuda.set_rng_state_all` requires CPU `torch.ByteTensor` objects, while the resume loader passed the mapped CUDA tensors directly.
 - Fix: Convert every saved CUDA RNG tensor back to CPU before calling `set_rng_state_all`.
-- Evidence after the fix: The corrected code is ready for a resume attempt; no model or optimizer state was modified by the failed attempt.
+- Evidence after the fix: The English run resumed from step 6000 and completed at step 29297; the failed attempt did not update model or optimizer state.
 - What I would check first next time: Test checkpoint restore with both CPU and CUDA RNG states after any change to `map_location`.
 
 ## 2026-11-11 English Task B prompt selector assumed Chinese text
